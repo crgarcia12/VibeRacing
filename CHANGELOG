@@ -5,6 +5,13 @@ New features:
 
 Bug fixes:
 
+Other:
+
+2.2.0
+=====
+
+Bug fixes:
+
 * Fix too slow physics especially with VSYNC on
 
 Other:
