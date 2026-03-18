@@ -19,18 +19,18 @@ public class CheckpointSystem
 
     /// <summary>
     /// Returns (lapCompleted, newCheckpointIndex) after processing the player's current position.
+    /// The player's checkpoint index is the most recently cleared checkpoint.
     /// </summary>
     public (bool lapCompleted, int newCheckpointIndex) Process(PlayerState player, long nowMs)
     {
         if (_checkpoints.Count == 0) return (false, player.CheckpointIndex);
 
-        int nextIndex = (player.CheckpointIndex) % _totalCheckpoints;
+        int nextIndex = (player.CheckpointIndex + 1) % _totalCheckpoints;
         var next = _checkpoints[nextIndex];
 
         if (!Intersects(player, next)) return (false, player.CheckpointIndex);
 
         bool isFinish = next.IsFinishLine;
-        int newIndex = (nextIndex + 1) % _totalCheckpoints;
 
         if (isFinish && player.CheckpointIndex == _totalCheckpoints - 1)
         {
@@ -40,7 +40,7 @@ public class CheckpointSystem
 
         if (!isFinish)
         {
-            return (false, newIndex);
+            return (false, nextIndex);
         }
 
         return (false, player.CheckpointIndex);
