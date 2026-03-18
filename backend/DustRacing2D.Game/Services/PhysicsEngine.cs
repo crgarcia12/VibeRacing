@@ -12,6 +12,9 @@ public static class PhysicsEngine
     public const double Acceleration = 280.0;
     public const double BrakeForce  = 520.0;
     public const double Friction    = 0.96;   // per-second multiplier (applied via pow)
+    public const double OffRoadFriction = 0.82;
+    public const double OffRoadAccelerationMultiplier = 0.45;
+    public const double OffRoadMaxSpeedMultiplier = 0.55;
     public const double TurnRateMax = 2.8;    // rad/s at full speed
     public const double TurnRateMin = 1.2;    // rad/s at low speed
     public const double CarWidth    = 18.0;
@@ -99,17 +102,28 @@ public static class PhysicsEngine
     /// <summary>Wall-collision bounce damping: speed is multiplied by this on impact.</summary>
     public const double WallBounceDamping = 0.4;
 
-    public static void Step(PlayerState player, double deltaTime, double trackWidth = double.MaxValue, double trackHeight = double.MaxValue)
+    public static double GetPlayableMargin(TrackData track)
+    {
+        return Math.Clamp(track.TileSize * 0.30, CarRadius, track.TileSize * 0.45);
+    }
+
+    public static void Step(PlayerState player, double deltaTime, TrackData track)
     {
         var input = player.Input;
+        bool onRoad = track.IsOnRoad(player.X, player.Y);
+        double effectiveAcceleration = onRoad ? Acceleration : Acceleration * OffRoadAccelerationMultiplier;
+        double effectiveMaxSpeed = onRoad ? MaxSpeed : MaxSpeed * OffRoadMaxSpeedMultiplier;
+        double effectiveFriction = onRoad ? Friction : OffRoadFriction;
 
         // Acceleration / braking
         if (input.Accelerate)
-            player.Speed = Math.Min(player.Speed + Acceleration * deltaTime, MaxSpeed);
+            player.Speed = Math.Min(player.Speed + effectiveAcceleration * deltaTime, effectiveMaxSpeed);
         else if (input.Brake)
             player.Speed = Math.Max(player.Speed - BrakeForce * deltaTime, 0);
         else
-            player.Speed *= Math.Pow(Friction, deltaTime);
+            player.Speed *= Math.Pow(effectiveFriction, deltaTime);
+
+        player.Speed = Math.Min(player.Speed, effectiveMaxSpeed);
 
         // Speed-proportional steering
         double speedRatio = player.Speed / MaxSpeed;
@@ -122,11 +136,28 @@ public static class PhysicsEngine
         player.X += Math.Cos(player.Angle) * player.Speed * deltaTime;
         player.Y += Math.Sin(player.Angle) * player.Speed * deltaTime;
 
-        // Wall collision: keep the car (half-size bounding box) inside the track canvas
-        ApplyWallCollision(player, trackWidth, trackHeight);
+        // Keep cars close to the course and inside the track canvas.
+        ApplyTrackCollision(player, track);
+
+        if (!track.IsOnRoad(player.X, player.Y))
+            player.Speed = Math.Min(player.Speed, MaxSpeed * OffRoadMaxSpeedMultiplier);
     }
 
-    private static void ApplyWallCollision(PlayerState player, double trackWidth, double trackHeight)
+    private static void ApplyTrackCollision(PlayerState player, TrackData track)
+    {
+        ApplyCanvasWallCollision(player, track.Width, track.Height);
+
+        double margin = GetPlayableMargin(track);
+        if (!track.TryClampToPlayableArea(player.X, player.Y, margin, out var clampedX, out var clampedY, out var normalX, out var normalY))
+            return;
+
+        player.X = clampedX;
+        player.Y = clampedY;
+        ReflectVelocity(player, normalX, normalY);
+        player.Speed *= WallBounceDamping;
+    }
+
+    private static void ApplyCanvasWallCollision(PlayerState player, double trackWidth, double trackHeight)
     {
         double halfW = CarWidth  / 2.0;
         double halfH = CarHeight / 2.0;
@@ -162,5 +193,24 @@ public static class PhysicsEngine
 
         if (bounced)
             player.Speed *= WallBounceDamping;
+    }
+
+    private static void ReflectVelocity(PlayerState player, double normalX, double normalY)
+    {
+        if (normalX == 0 && normalY == 0)
+            return;
+
+        double vx = Math.Cos(player.Angle) * player.Speed;
+        double vy = Math.Sin(player.Angle) * player.Speed;
+        double normalVelocity = (vx * normalX) + (vy * normalY);
+
+        if (normalVelocity <= 0)
+            return;
+
+        vx -= 2.0 * normalVelocity * normalX;
+        vy -= 2.0 * normalVelocity * normalY;
+
+        if (Math.Abs(vx) > 1e-6 || Math.Abs(vy) > 1e-6)
+            player.Angle = Math.Atan2(vy, vx);
     }
 }

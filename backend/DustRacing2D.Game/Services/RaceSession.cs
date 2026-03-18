@@ -78,9 +78,7 @@ public class RaceSession : IAsyncDisposable
             {
                 if (player.Finished) continue;
 
-                double trackWidth  = _track.Cols * _track.TileSize;
-                double trackHeight = _track.Rows * _track.TileSize;
-                PhysicsEngine.Step(player, dt, trackWidth, trackHeight);
+                PhysicsEngine.Step(player, dt, _track);
 
                 var (lapCompleted, newCheckpoint) = _checkpoints.Process(player, nowMs);
 
