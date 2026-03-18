@@ -2,7 +2,10 @@
 
 body {
   font-family: 'Courier New', monospace;
-  background: #1a1a2e;
+  background:
+    radial-gradient(circle at top, rgba(223, 170, 88, 0.14), transparent 32%),
+    radial-gradient(circle at bottom, rgba(40, 96, 33, 0.18), transparent 40%),
+    linear-gradient(180deg, #1c2228 0%, #151725 48%, #090b13 100%);
   color: #eee;
   min-height: 100vh;
   display: flex;
@@ -94,10 +97,14 @@ h2 { font-size: 1.5rem; color: #e94560; text-align: center; }
 /* Race canvas */
 #raceCanvas {
   display: block;
-  border: 2px solid #e94560;
-  border-radius: 4px;
-  box-shadow: 0 0 24px rgba(233,69,96,0.35);
+  border: 3px solid #9f6c38;
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 1px rgba(255, 235, 203, 0.14),
+    0 0 28px rgba(76, 133, 44, 0.22),
+    0 26px 60px rgba(0, 0, 0, 0.52);
   image-rendering: pixelated;
+  background: #244219;
   max-width: 100vw;
   max-height: 100vh;
 }
