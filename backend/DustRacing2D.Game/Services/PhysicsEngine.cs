@@ -23,11 +23,16 @@ public static class PhysicsEngine
     // Radius used for circle-vs-circle collision (half the diagonal of the car bounding box).
     public const double CarRadius = 18.0;
 
+    private const double CarCollisionRestitution = 0.22;
+    private const double MinimumImpactForwardDot = 0.35;
+    private const double VelocityEpsilon = 1e-6;
+
     /// <summary>
     /// Detects and resolves overlapping cars for all pairs in the provided collection.
     /// Each car is treated as a circle of radius <see cref="CarRadius"/>.
-    /// Overlapping cars are pushed apart along the collision normal and exchange
-    /// velocity components along that normal (elastic collision).
+    /// Overlapping cars are pushed apart along the collision normal and lose some
+    /// closing speed along that normal so crashes feel weighty without snapping a
+    /// car into a full heading reversal.
     /// </summary>
     public static void ResolveCollisions(IEnumerable<PlayerState> players)
     {
@@ -73,33 +78,21 @@ public static class PhysicsEngine
                 // Only resolve if cars are approaching each other
                 if (relVn > 0)
                 {
-                    // Swap the normal components of velocity (equal-mass elastic)
-                    double aVn = avx * nx + avy * ny;
-                    double bVn = bvx * nx + bvy * ny;
+                    double impulse = ((1.0 + CarCollisionRestitution) * relVn) * 0.5;
 
-                    // Replace normal components
-                    avx += (bVn - aVn) * nx;
-                    avy += (bVn - aVn) * ny;
-                    bvx += (aVn - bVn) * nx;
-                    bvy += (aVn - bVn) * ny;
+                    avx -= impulse * nx;
+                    avy -= impulse * ny;
+                    bvx += impulse * nx;
+                    bvy += impulse * ny;
 
-                    a.Speed = Math.Sqrt(avx * avx + avy * avy);
-                    b.Speed = Math.Sqrt(bvx * bvx + bvy * bvy);
-
-                    if (a.Speed > 1e-6)
-                        a.Angle = Math.Atan2(avy, avx);
-                    if (b.Speed > 1e-6)
-                        b.Angle = Math.Atan2(bvy, bvx);
-
-                    // Clamp to MaxSpeed
-                    a.Speed = Math.Min(a.Speed, MaxSpeed);
-                    b.Speed = Math.Min(b.Speed, MaxSpeed);
+                    ApplyImpactMotion(a, avx, avy);
+                    ApplyImpactMotion(b, bvx, bvy);
                 }
             }
         }
     }
 
-    /// <summary>Wall-collision bounce damping: speed is multiplied by this on impact.</summary>
+    /// <summary>Crash damping applied after wall impacts.</summary>
     public const double WallBounceDamping = 0.4;
 
     public static double GetPlayableMargin(TrackData track)
@@ -153,8 +146,8 @@ public static class PhysicsEngine
 
         player.X = clampedX;
         player.Y = clampedY;
-        ReflectVelocity(player, normalX, normalY);
-        player.Speed *= WallBounceDamping;
+        if (ClipVelocityAgainstNormal(player, normalX, normalY))
+            player.Speed *= WallBounceDamping;
     }
 
     private static void ApplyCanvasWallCollision(PlayerState player, double trackWidth, double trackHeight)
@@ -167,50 +160,88 @@ public static class PhysicsEngine
         if (player.X - halfW < 0)
         {
             player.X = halfW;
-            bounced = true;
-            // Reflect horizontal velocity component by flipping the angle across the vertical wall
-            player.Angle = Math.PI - player.Angle;
+            bounced |= ClipVelocityAgainstNormal(player, -1.0, 0.0);
         }
         else if (player.X + halfW > trackWidth)
         {
             player.X = trackWidth - halfW;
-            bounced = true;
-            player.Angle = Math.PI - player.Angle;
+            bounced |= ClipVelocityAgainstNormal(player, 1.0, 0.0);
         }
 
         if (player.Y - halfH < 0)
         {
             player.Y = halfH;
-            bounced = true;
-            player.Angle = -player.Angle;
+            bounced |= ClipVelocityAgainstNormal(player, 0.0, -1.0);
         }
         else if (player.Y + halfH > trackHeight)
         {
             player.Y = trackHeight - halfH;
-            bounced = true;
-            player.Angle = -player.Angle;
+            bounced |= ClipVelocityAgainstNormal(player, 0.0, 1.0);
         }
 
         if (bounced)
             player.Speed *= WallBounceDamping;
     }
 
-    private static void ReflectVelocity(PlayerState player, double normalX, double normalY)
+    private static bool ClipVelocityAgainstNormal(PlayerState player, double normalX, double normalY)
     {
         if (normalX == 0 && normalY == 0)
-            return;
+            return false;
 
         double vx = Math.Cos(player.Angle) * player.Speed;
         double vy = Math.Sin(player.Angle) * player.Speed;
         double normalVelocity = (vx * normalX) + (vy * normalY);
 
         if (normalVelocity <= 0)
+            return false;
+
+        vx -= normalVelocity * normalX;
+        vy -= normalVelocity * normalY;
+
+        ApplyImpactMotion(player, vx, vy);
+        return true;
+    }
+
+    private static void ApplyImpactMotion(PlayerState player, double vx, double vy)
+    {
+        double speed = Math.Sqrt((vx * vx) + (vy * vy));
+        player.Speed = Math.Min(speed, MaxSpeed);
+
+        if (player.Speed <= VelocityEpsilon)
+        {
+            player.Speed = 0;
             return;
+        }
 
-        vx -= 2.0 * normalVelocity * normalX;
-        vy -= 2.0 * normalVelocity * normalY;
+        player.Angle = GetNaturalImpactHeading(player.Angle, vx, vy);
+    }
 
-        if (Math.Abs(vx) > 1e-6 || Math.Abs(vy) > 1e-6)
-            player.Angle = Math.Atan2(vy, vx);
+    private static double GetNaturalImpactHeading(double currentAngle, double vx, double vy)
+    {
+        double magnitudeSq = (vx * vx) + (vy * vy);
+        if (magnitudeSq <= VelocityEpsilon * VelocityEpsilon)
+            return currentAngle;
+
+        double inverseMagnitude = 1.0 / Math.Sqrt(magnitudeSq);
+        double targetX = vx * inverseMagnitude;
+        double targetY = vy * inverseMagnitude;
+
+        double forwardX = Math.Cos(currentAngle);
+        double forwardY = Math.Sin(currentAngle);
+        double forwardDot = (targetX * forwardX) + (targetY * forwardY);
+
+        if (forwardDot >= MinimumImpactForwardDot)
+            return Math.Atan2(targetY, targetX);
+
+        double sideX = -forwardY;
+        double sideY = forwardX;
+        double sideDot = (targetX * sideX) + (targetY * sideY);
+
+        if (Math.Abs(sideDot) <= VelocityEpsilon)
+            return currentAngle;
+
+        double adjustedX = (forwardX * MinimumImpactForwardDot) + (sideX * sideDot);
+        double adjustedY = (forwardY * MinimumImpactForwardDot) + (sideY * sideDot);
+        return Math.Atan2(adjustedY, adjustedX);
     }
 }
