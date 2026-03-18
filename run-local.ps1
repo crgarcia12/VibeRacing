@@ -10,8 +10,8 @@ $backend = Start-Process -FilePath "dotnet" `
     -PassThru -NoNewWindow
 
 Write-Host "Starting frontend..." -ForegroundColor Cyan
-$frontend = Start-Process -FilePath "npm" `
-    -ArgumentList "run", "dev" `
+$frontend = Start-Process -FilePath "cmd" `
+    -ArgumentList "/c", "npm run dev" `
     -WorkingDirectory "$root\frontend" `
     -PassThru -NoNewWindow
 
