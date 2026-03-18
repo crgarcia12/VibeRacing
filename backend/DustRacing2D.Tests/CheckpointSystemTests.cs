@@ -82,6 +82,35 @@ public class CheckpointSystemTests
         ProcessAtPosition(system, player, finishLineCenter.x, finishLineCenter.y).Should().Be((true, 0));
     }
 
+    [Fact]
+    public void DustyFields_CountsLapWhenFinishLineIsCrossedFromTheGrassShoulder()
+    {
+        var track = LoadTrack("dusty-fields");
+        var checkpoints = track.Checkpoints.OrderBy(cp => cp.Index).ToList();
+        var finishLine = checkpoints.Single(cp => cp.IsFinishLine);
+        var system = new CheckpointSystem(track);
+        var player = new PlayerState
+        {
+            Lap = 1,
+            CheckpointIndex = 0
+        };
+
+        foreach (var checkpoint in checkpoints.Skip(1))
+        {
+            var laneCenter = GetDustyFieldsLaneCenter(track, checkpoint);
+            ProcessAtPosition(system, player, laneCenter.x, laneCenter.y).Should().Be((false, checkpoint.Index));
+        }
+
+        double playableMargin = PhysicsEngine.GetPlayableMargin(track);
+        double finishLineCenterX = finishLine.X + (finishLine.Width / 2.0);
+        double grassShoulderY = finishLine.Y + finishLine.Height + playableMargin - 1.0;
+
+        track.IsInsidePlayableArea(finishLineCenterX, grassShoulderY, playableMargin).Should().BeTrue();
+        track.IsOnRoad(finishLineCenterX, grassShoulderY).Should().BeFalse();
+
+        ProcessAtPosition(system, player, finishLineCenterX, grassShoulderY).Should().Be((true, 0));
+    }
+
     private static (bool lapCompleted, int newCheckpointIndex) ProcessAtCheckpoint(
         CheckpointSystem system,
         PlayerState player,
