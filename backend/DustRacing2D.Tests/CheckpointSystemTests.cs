@@ -14,8 +14,8 @@ public class CheckpointSystemTests
             Checkpoints = new List<CheckpointData>
             {
                 new() { Index = 0, X = 0, Y = 0, Width = 10, Height = 10, IsFinishLine = true },
-                new() { Index = 1, X = 20, Y = 0, Width = 10, Height = 10, IsFinishLine = false },
-                new() { Index = 2, X = 40, Y = 0, Width = 10, Height = 10, IsFinishLine = false }
+                new() { Index = 1, X = 40, Y = 0, Width = 10, Height = 10, IsFinishLine = false },
+                new() { Index = 2, X = 80, Y = 0, Width = 10, Height = 10, IsFinishLine = false }
             }
         };
 
@@ -60,17 +60,63 @@ public class CheckpointSystemTests
         ProcessAtCheckpoint(system, player, checkpoints[0]).Should().Be((true, 0));
     }
 
+    [Fact]
+    public void DustyFields_CountsLapWhenServerTracksLaneCenterPasses()
+    {
+        var track = LoadTrack("dusty-fields");
+        var checkpoints = track.Checkpoints.OrderBy(cp => cp.Index).ToList();
+        var system = new CheckpointSystem(track);
+        var player = new PlayerState
+        {
+            Lap = 1,
+            CheckpointIndex = 0
+        };
+
+        foreach (var checkpoint in checkpoints.Skip(1))
+        {
+            var laneCenter = GetDustyFieldsLaneCenter(track, checkpoint);
+            ProcessAtPosition(system, player, laneCenter.x, laneCenter.y).Should().Be((false, checkpoint.Index));
+        }
+
+        var finishLineCenter = GetDustyFieldsLaneCenter(track, checkpoints[0]);
+        ProcessAtPosition(system, player, finishLineCenter.x, finishLineCenter.y).Should().Be((true, 0));
+    }
+
     private static (bool lapCompleted, int newCheckpointIndex) ProcessAtCheckpoint(
         CheckpointSystem system,
         PlayerState player,
         CheckpointData checkpoint)
     {
-        player.X = checkpoint.X + (checkpoint.Width / 2.0);
-        player.Y = checkpoint.Y + (checkpoint.Height / 2.0);
+        return ProcessAtPosition(
+            system,
+            player,
+            checkpoint.X + (checkpoint.Width / 2.0),
+            checkpoint.Y + (checkpoint.Height / 2.0));
+    }
+
+    private static (bool lapCompleted, int newCheckpointIndex) ProcessAtPosition(
+        CheckpointSystem system,
+        PlayerState player,
+        double x,
+        double y)
+    {
+        player.X = x;
+        player.Y = y;
 
         var result = system.Process(player, 0);
         player.CheckpointIndex = result.newCheckpointIndex;
         return result;
+    }
+
+    private static (double x, double y) GetDustyFieldsLaneCenter(TrackData track, CheckpointData checkpoint)
+    {
+        if (checkpoint.IsFinishLine)
+            return (checkpoint.X + (checkpoint.Width / 2.0), checkpoint.Y + (checkpoint.Height / 2.0));
+
+        if (checkpoint.Height > checkpoint.Width)
+            return (checkpoint.X + (track.TileSize / 2.0), checkpoint.Y + (checkpoint.Height / 2.0));
+
+        return (checkpoint.X + (checkpoint.Width / 2.0), checkpoint.Y + (track.TileSize / 2.0));
     }
 
     private static TrackData LoadTrack(string trackName)
