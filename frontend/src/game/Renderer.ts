@@ -361,18 +361,36 @@ export class Renderer {
   }
 
   private drawTracksideProps() {
-    const { track } = this;
+    const { ctx, track } = this;
     if (!track) return;
 
     const { minX, maxX, minY, maxY } = this.getTrackBounds();
     const ts = track.tileSize;
     const centerX = (minX + maxX) / 2;
     const centerY = (minY + maxY) / 2;
+    const fenceOffset = ts * 0.32;
+    const straightFenceInset = ts;
+    const curveFenceSpacing = Math.max(24, ts * 0.28);
 
-    this.drawFence(minX + ts * 0.72, minY - ts * 0.32, maxX - ts * 0.72, minY - ts * 0.32, 28);
-    this.drawFence(minX + ts * 0.82, maxY + ts * 0.32, maxX - ts * 0.82, maxY + ts * 0.32, 28);
-    this.drawFence(minX - ts * 0.32, minY + ts * 1.05, minX - ts * 0.32, maxY - ts * 1.05, 26);
-    this.drawFence(maxX + ts * 0.32, minY + ts * 1.05, maxX + ts * 0.32, maxY - ts * 1.05, 26);
+    this.drawFence(minX + straightFenceInset, minY - fenceOffset, maxX - straightFenceInset, minY - fenceOffset, 28);
+    this.drawFence(minX + straightFenceInset, maxY + fenceOffset, maxX - straightFenceInset, maxY + fenceOffset, 28);
+    this.drawFence(minX - fenceOffset, minY + straightFenceInset, minX - fenceOffset, maxY - straightFenceInset, 26);
+    this.drawFence(maxX + fenceOffset, minY + straightFenceInset, maxX + fenceOffset, maxY - straightFenceInset, 26);
+
+    track.tiles.forEach(tile => {
+      if (tile.type !== 'curve') return;
+
+      const tileX = tile.col * ts;
+      const tileY = tile.row * ts;
+      const isOuterCorner = (tileX === minX || tileX === maxX - ts) && (tileY === minY || tileY === maxY - ts);
+      if (!isOuterCorner) return;
+
+      ctx.save();
+      ctx.translate(tileX + ts / 2, tileY + ts / 2);
+      ctx.rotate((tile.rotation * Math.PI) / 180);
+      this.drawCurveFence(-ts / 2, -ts / 2, ts + fenceOffset, 0, Math.PI / 2, curveFenceSpacing);
+      ctx.restore();
+    });
 
     [
       { x: minX - ts * 0.46, y: minY + ts * 1.25, scale: 1.04, foliage: '#3a7436' },
@@ -550,6 +568,61 @@ export class Renderer {
     }
 
     ctx.restore();
+  }
+
+  private drawCurveFence(
+    centerX: number,
+    centerY: number,
+    radius: number,
+    startAngle: number,
+    endAngle: number,
+    postSpacing: number,
+  ) {
+    const { ctx } = this;
+    const arcLength = radius * Math.abs(endAngle - startAngle);
+    if (!arcLength) return;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.14)';
+    this.fillArcBand(centerX, centerY, radius + 4, radius - 2, startAngle, endAngle);
+
+    ctx.fillStyle = '#7d5a36';
+    this.fillArcBand(centerX, centerY, radius - 7, radius - 11, startAngle, endAngle);
+    this.fillArcBand(centerX, centerY, radius + 3, radius - 1, startAngle, endAngle);
+
+    const postCount = Math.max(2, Math.round(arcLength / postSpacing));
+    for (let postIndex = 0; postIndex <= postCount; postIndex++) {
+      const angle = startAngle + ((endAngle - startAngle) * postIndex) / postCount;
+      const postX = centerX + Math.cos(angle) * radius;
+      const postY = centerY + Math.sin(angle) * radius;
+
+      ctx.save();
+      ctx.translate(postX, postY);
+      ctx.rotate(angle + Math.PI / 2);
+      ctx.fillStyle = '#9f7548';
+      roundedRect(ctx, -2, -16, 4, 24, 2);
+      ctx.fillStyle = '#c79a63';
+      ctx.fillRect(-1, -16, 1, 18);
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  private fillArcBand(
+    centerX: number,
+    centerY: number,
+    outerRadius: number,
+    innerRadius: number,
+    startAngle: number,
+    endAngle: number,
+  ) {
+    const { ctx } = this;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, outerRadius, startAngle, endAngle, false);
+    ctx.arc(centerX, centerY, innerRadius, endAngle, startAngle, true);
+    ctx.closePath();
+    ctx.fill();
   }
 
   private getTrackBounds() {
