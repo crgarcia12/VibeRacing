@@ -95,6 +95,8 @@ h2 { font-size: 1.5rem; color: #e94560; text-align: center; }
 #raceCanvas {
   display: block;
   border: 2px solid #e94560;
+  border-radius: 4px;
+  box-shadow: 0 0 24px rgba(233,69,96,0.35);
   image-rendering: pixelated;
   max-width: 100vw;
   max-height: 100vh;
