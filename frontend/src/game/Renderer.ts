@@ -400,6 +400,7 @@ export class Renderer {
     this.drawFence(minX + straightFenceInset, maxY + fenceOffset, maxX - straightFenceInset, maxY + fenceOffset, 28);
     this.drawFence(minX - fenceOffset, minY + straightFenceInset, minX - fenceOffset, maxY - straightFenceInset, 26);
     this.drawFence(maxX + fenceOffset, minY + straightFenceInset, maxX + fenceOffset, maxY - straightFenceInset, 26);
+    this.drawInnerTrackFences(minX, maxX, minY, maxY, ts, fenceOffset, curveFenceSpacing);
 
     track.tiles.forEach(tile => {
       if (tile.type !== 'curve') return;
@@ -444,6 +445,38 @@ export class Renderer {
       { x: minX - ts * 0.1, y: centerY - ts * 1.05, scale: 0.78 },
       { x: maxX + ts * 0.06, y: centerY + ts * 1.15, scale: 0.82 },
     ].forEach(rock => this.drawRockCluster(rock.x, rock.y, rock.scale));
+  }
+
+  private drawInnerTrackFences(
+    minX: number,
+    maxX: number,
+    minY: number,
+    maxY: number,
+    tileSize: number,
+    fenceOffset: number,
+    curveFenceSpacing: number,
+  ) {
+    const innerMinX = minX + tileSize;
+    const innerMaxX = maxX - tileSize;
+    const innerMinY = minY + tileSize;
+    const innerMaxY = maxY - tileSize;
+    if (innerMaxX <= innerMinX || innerMaxY <= innerMinY) return;
+
+    const topFenceY = innerMinY + fenceOffset;
+    const bottomFenceY = innerMaxY - fenceOffset;
+    const leftFenceX = innerMinX + fenceOffset;
+    const rightFenceX = innerMaxX - fenceOffset;
+    const innerPostSpacing = Math.max(22, curveFenceSpacing - 4);
+
+    this.drawFence(innerMinX, topFenceY, innerMaxX, topFenceY, innerPostSpacing);
+    this.drawFence(innerMinX, bottomFenceY, innerMaxX, bottomFenceY, innerPostSpacing);
+    this.drawFence(leftFenceX, innerMinY, leftFenceX, innerMaxY, innerPostSpacing);
+    this.drawFence(rightFenceX, innerMinY, rightFenceX, innerMaxY, innerPostSpacing);
+
+    this.drawCurveFence(innerMinX, innerMinY, fenceOffset, 0, Math.PI / 2, innerPostSpacing);
+    this.drawCurveFence(innerMaxX, innerMinY, fenceOffset, Math.PI / 2, Math.PI, innerPostSpacing);
+    this.drawCurveFence(innerMaxX, innerMaxY, fenceOffset, Math.PI, (3 * Math.PI) / 2, innerPostSpacing);
+    this.drawCurveFence(innerMinX, innerMaxY, fenceOffset, (3 * Math.PI) / 2, Math.PI * 2, innerPostSpacing);
   }
 
   private drawGroundPatch(x: number, y: number, rx: number, ry: number, rotation: number, color: string) {
