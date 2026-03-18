@@ -78,7 +78,9 @@ public class RaceSession : IAsyncDisposable
             {
                 if (player.Finished) continue;
 
-                PhysicsEngine.Step(player, dt);
+                double trackWidth  = _track.Cols * _track.TileSize;
+                double trackHeight = _track.Rows * _track.TileSize;
+                PhysicsEngine.Step(player, dt, trackWidth, trackHeight);
 
                 var (lapCompleted, newCheckpoint) = _checkpoints.Process(player, nowMs);
 
@@ -103,6 +105,8 @@ public class RaceSession : IAsyncDisposable
                     player.CheckpointIndex = newCheckpoint;
                 }
             }
+
+            PhysicsEngine.ResolveCollisions(_room.Players.Values);
 
             RankingSystem.UpdateRankings(_room.Players.Values, _track.Checkpoints.Count);
         }
