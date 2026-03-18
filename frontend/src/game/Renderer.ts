@@ -106,9 +106,6 @@ export class Renderer {
       ctx.translate(x + ts / 2, y + ts / 2);
       ctx.rotate((tile.rotation * Math.PI) / 180);
 
-      ctx.fillStyle = 'rgba(0,0,0,0.16)';
-      ctx.fillRect(-ts / 2 + 5, -ts / 2 + 7, ts, ts);
-
       if (tile.type === 'curve') {
         this.drawCurveTile(ts, curveInnerRadius, curveRoadInnerRadius, curveRoadOuterRadius, curveOuterRadius, stripeLength);
       } else {
@@ -140,6 +137,142 @@ export class Renderer {
         ctx.fillRect(cp.x + cp.width - 4, cp.y, 4, cp.height);
       }
     });
+  }
+
+  private fillRoadSurface(ts: number, clipPath?: () => void) {
+    const { ctx } = this;
+    const roadGrad = ctx.createLinearGradient(-ts / 2, 0, ts / 2, 0);
+    roadGrad.addColorStop(0, '#4a4a4a');
+    roadGrad.addColorStop(0.5, '#525252');
+    roadGrad.addColorStop(1, '#474747');
+
+    ctx.fillStyle = roadGrad;
+    if (clipPath) {
+      clipPath();
+      ctx.fill();
+    } else {
+      ctx.fillRect(-ts / 2, -ts / 2, ts, ts);
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-ts / 2 + 3, -ts / 2 + 3, ts - 6, ts - 6);
+    }
+
+    ctx.save();
+    if (clipPath) {
+      clipPath();
+      ctx.clip();
+    }
+    ctx.globalAlpha = 0.025;
+    ctx.fillStyle = '#000';
+    for (let ny = -ts / 2; ny < ts / 2; ny += 6) {
+      ctx.fillRect(-ts / 2, ny, ts, 3);
+    }
+    ctx.restore();
+  }
+
+  private drawStraightTile(ts: number, curbWidth: number, stripeLength: number) {
+    const { ctx } = this;
+    ctx.fillStyle = 'rgba(0,0,0,0.16)';
+    ctx.fillRect(-ts / 2 + 5, -ts / 2 + 7, ts, ts);
+    this.fillRoadSurface(ts);
+
+    const stripeCount = Math.ceil(ts / stripeLength);
+    for (let stripeIndex = 0; stripeIndex < stripeCount; stripeIndex++) {
+      const startX = -ts / 2 + stripeIndex * stripeLength;
+      const endX = Math.min(ts / 2, startX + stripeLength);
+      const width = endX - startX;
+      if (width <= 0) continue;
+
+      ctx.fillStyle = KERB_COLORS[stripeIndex % KERB_COLORS.length];
+      ctx.fillRect(startX, -ts / 2, width, curbWidth);
+      ctx.fillRect(startX, ts / 2 - curbWidth, width, curbWidth);
+    }
+  }
+
+  private drawCurveTile(
+    ts: number,
+    curveInnerRadius: number,
+    roadInnerRadius: number,
+    roadOuterRadius: number,
+    curveOuterRadius: number,
+    stripeLength: number,
+  ) {
+    const { ctx } = this;
+    ctx.save();
+    ctx.translate(5, 7);
+    ctx.fillStyle = 'rgba(0,0,0,0.16)';
+    this.traceCurveBand(ts, curveOuterRadius, curveInnerRadius);
+    ctx.fill();
+    ctx.restore();
+
+    this.fillRoadSurface(ts, () => this.traceCurveBand(ts, roadOuterRadius, roadInnerRadius));
+    this.drawStripedCurveBand(ts, curveOuterRadius, roadOuterRadius, stripeLength);
+    this.drawStripedCurveBand(ts, roadInnerRadius, curveInnerRadius, stripeLength);
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(-ts / 2, -ts / 2, curveOuterRadius - 3, 0, Math.PI / 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(-ts / 2, -ts / 2, curveInnerRadius + 3, 0, Math.PI / 2);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+    ctx.lineWidth = 1.25;
+    ctx.beginPath();
+    ctx.arc(-ts / 2, -ts / 2, roadOuterRadius, 0, Math.PI / 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(-ts / 2, -ts / 2, roadInnerRadius, 0, Math.PI / 2);
+    ctx.stroke();
+  }
+
+  private traceCurveBand(ts: number, outerRadius: number, innerRadius: number) {
+    const { ctx } = this;
+    ctx.beginPath();
+    ctx.arc(-ts / 2, -ts / 2, outerRadius, 0, Math.PI / 2, false);
+    ctx.arc(-ts / 2, -ts / 2, innerRadius, Math.PI / 2, 0, true);
+    ctx.closePath();
+  }
+
+  private drawStripedCurveBand(ts: number, outerRadius: number, innerRadius: number, stripeLength: number) {
+    const { ctx } = this;
+    const arcLength = ((outerRadius + innerRadius) / 2) * (Math.PI / 2);
+    const stripeCount = Math.max(1, Math.ceil(arcLength / stripeLength));
+    const angleStep = (Math.PI / 2) / stripeCount;
+
+    for (let stripeIndex = 0; stripeIndex < stripeCount; stripeIndex++) {
+      const startAngle = stripeIndex * angleStep;
+      const endAngle = startAngle + angleStep;
+      ctx.fillStyle = KERB_COLORS[stripeIndex % KERB_COLORS.length];
+      ctx.beginPath();
+      ctx.arc(-ts / 2, -ts / 2, outerRadius, startAngle, endAngle, false);
+      ctx.arc(-ts / 2, -ts / 2, innerRadius, endAngle, startAngle, true);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  private drawLaneMarking(tile: TileData, ts: number, curveRoadInnerRadius: number, curveRoadOuterRadius: number) {
+    const { ctx } = this;
+    ctx.strokeStyle = 'rgba(255,255,255,0.38)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([20, 18]);
+
+    if (tile.type === 'straight') {
+      ctx.beginPath();
+      ctx.moveTo(-ts / 2, 0);
+      ctx.lineTo(ts / 2, 0);
+      ctx.stroke();
+    } else if (tile.type === 'curve') {
+      const centerLineRadius = (curveRoadInnerRadius + curveRoadOuterRadius) / 2;
+      ctx.beginPath();
+      ctx.arc(-ts / 2, -ts / 2, centerLineRadius, 0, Math.PI / 2);
+      ctx.stroke();
+    }
+
+    ctx.setLineDash([]);
   }
 
   private drawGroundVariation() {
