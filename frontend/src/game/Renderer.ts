@@ -75,8 +75,8 @@ export class Renderer {
         player.displayName, player.playerId === state.myPlayerId);
     });
 
-    // HUD
-    const me = state.interpolatedPlayers.get(state.myPlayerId);
+    // HUD progress comes from the latest backend snapshot, not the render cache.
+    const me = state.latestSnapshot?.players.find(player => player.playerId === state.myPlayerId);
     if (me && this.track) {
       this.drawHUD(state, me);
     }
