@@ -81,6 +81,7 @@ export class NetworkClient {
 
     this.connection.on('ScoreboardUpdate', (data: ScoreboardUpdate) => {
       this.state.scoreboard = data.rankings;
+      this.state.scoreboardRevision += 1;
       this.onStateChange();
     });
 

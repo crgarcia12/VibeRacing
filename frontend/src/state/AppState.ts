@@ -18,6 +18,7 @@ export interface AppState {
   latestSnapshot: GameSnapshot | null;
   interpolatedPlayers: Map<string, PlayerSnapshot>; // Rendering cache only; lap/rank authority stays in backend snapshots.
   scoreboard: ScoreboardEntry[];
+  scoreboardRevision: number; // Incremented only when the backend pushes a fresh scoreboard ordering.
 
   // Results
   raceResults: RaceFinished | null;
@@ -34,6 +35,7 @@ export function createInitialState(): AppState {
     latestSnapshot: null,
     interpolatedPlayers: new Map(),
     scoreboard: [],
+    scoreboardRevision: 0,
     raceResults: null,
   };
 }

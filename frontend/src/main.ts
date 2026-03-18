@@ -68,6 +68,7 @@ function update() {
         state.screen = 'lobby';
         state.raceResults = null;
         state.scoreboard = [];
+        state.scoreboardRevision = 0;
         state.latestSnapshot = null;
         state.interpolatedPlayers.clear();
         update();

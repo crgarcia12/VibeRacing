@@ -7,6 +7,21 @@ const KERB_COLORS = ['#cc2222', '#eeeeee'];
 
 const CAR_LEN = 30;
 const CAR_WID = 18;
+const SCOREBOARD_LINE_HEIGHT = 20;
+const SCOREBOARD_MOVE_DURATION_MS = 420;
+const SCOREBOARD_FLASH_DURATION_MS = 1100;
+
+interface ScoreboardSnapshot {
+  rank: number;
+  rowIndex: number;
+}
+
+interface ScoreboardEffect {
+  delta: number;
+  direction: 'up' | 'down';
+  fromOffsetY: number;
+  startTime: number;
+}
 
 export class Renderer {
   private canvas: HTMLCanvasElement;
@@ -14,6 +29,9 @@ export class Renderer {
   private track: TrackData | null = null;
   private playerColorMap = new Map<string, string>();
   private colorIndex = 0;
+  private scoreboardBaseline = new Map<string, ScoreboardSnapshot>();
+  private scoreboardEffects = new Map<string, ScoreboardEffect>();
+  private lastScoreboardRevision = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -34,6 +52,12 @@ export class Renderer {
 
   render(state: AppState) {
     const { ctx, canvas } = this;
+    if (state.scoreboard.length === 0) {
+      this.resetScoreboardEffects();
+    } else {
+      this.syncScoreboardEffects(state);
+    }
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Background grass gradient
@@ -734,28 +758,136 @@ export class Renderer {
     ctx.fillText(`TIME  ${formatMs(me.lapTimeMs)}`, 16, 86);
   }
 
+  private resetScoreboardEffects() {
+    this.scoreboardBaseline.clear();
+    this.scoreboardEffects.clear();
+    this.lastScoreboardRevision = 0;
+  }
+
+  private syncScoreboardEffects(state: AppState) {
+    if (state.scoreboardRevision === this.lastScoreboardRevision) return;
+
+    const now = performance.now();
+    const nextBaseline = new Map<string, ScoreboardSnapshot>();
+
+    state.scoreboard.forEach((entry, rowIndex) => {
+      nextBaseline.set(entry.playerId, { rank: entry.rank, rowIndex });
+
+      const previous = this.scoreboardBaseline.get(entry.playerId);
+      if (!previous) return;
+
+      const rankDelta = previous.rank - entry.rank;
+      if (rankDelta === 0) return;
+
+      this.scoreboardEffects.set(entry.playerId, {
+        delta: Math.abs(rankDelta),
+        direction: rankDelta > 0 ? 'up' : 'down',
+        fromOffsetY: (previous.rowIndex - rowIndex) * SCOREBOARD_LINE_HEIGHT,
+        startTime: now,
+      });
+    });
+
+    for (const playerId of Array.from(this.scoreboardEffects.keys())) {
+      if (!nextBaseline.has(playerId)) {
+        this.scoreboardEffects.delete(playerId);
+      }
+    }
+
+    this.scoreboardBaseline = nextBaseline;
+    this.lastScoreboardRevision = state.scoreboardRevision;
+  }
+
   private drawScoreboard(state: AppState) {
     const { ctx, canvas } = this;
-    const x = canvas.width - 182;
-    const lineH = 20;
-    const h = 20 + state.scoreboard.length * lineH;
+    const now = performance.now();
+    const panelX = canvas.width - 232;
+    const panelY = 8;
+    const panelWidth = 224;
+    const headerHeight = 22;
+    const panelHeight = headerHeight + state.scoreboard.length * SCOREBOARD_LINE_HEIGHT + 10;
+    const innerX = panelX + 12;
+    const clipTop = panelY + headerHeight;
+    const rankX = innerX;
+    const nameX = innerX + 28;
+    const lapX = panelX + 134;
+    const bestX = panelX + panelWidth - 46;
 
     ctx.fillStyle = 'rgba(0,0,0,0.70)';
-    roundedRect(ctx, x - 8, 8, 192, h, 8);
+    roundedRect(ctx, panelX, panelY, panelWidth, panelHeight, 8);
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    traceRoundedRect(ctx, panelX, panelY, panelWidth, panelHeight, 8);
+    ctx.stroke();
 
+    ctx.textBaseline = 'top';
     ctx.fillStyle = '#e94560';
     ctx.font = 'bold 9px monospace';
     ctx.textAlign = 'left';
-    ctx.fillText('STANDINGS', x, 22);
+    ctx.fillText('STANDINGS', innerX, panelY + 7);
 
-    ctx.font = 'bold 11px monospace';
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(panelX + 6, clipTop, panelWidth - 12, panelHeight - headerHeight - 4);
+    ctx.clip();
+
     state.scoreboard.forEach((entry, i) => {
+      const effect = this.scoreboardEffects.get(entry.playerId);
+      let rowTop = clipTop + 4 + i * SCOREBOARD_LINE_HEIGHT;
+      let effectAlpha = 0;
+      let badgeText: string | null = null;
+      let badgeColor = '255,255,255';
+      let badgeTextColor = '#fff';
+
+      if (effect) {
+        const elapsed = now - effect.startTime;
+        const moveProgress = Math.min(elapsed / SCOREBOARD_MOVE_DURATION_MS, 1);
+        const fadeProgress = Math.min(elapsed / SCOREBOARD_FLASH_DURATION_MS, 1);
+        rowTop += effect.fromOffsetY * (1 - easeOutCubic(moveProgress));
+        effectAlpha = 1 - fadeProgress;
+        badgeText = `${effect.direction === 'up' ? '▲' : '▼'}${effect.delta}`;
+        badgeColor = effect.direction === 'up' ? '46,204,113' : '243,156,18';
+        badgeTextColor = effect.direction === 'up' ? '#d5f5e3' : '#fdebd0';
+
+        if (fadeProgress >= 1) {
+          this.scoreboardEffects.delete(entry.playerId);
+        }
+      }
+
       const isMe = entry.playerId === state.myPlayerId;
-      ctx.fillStyle = isMe ? '#f1c40f' : '#ddd';
+      if (effectAlpha > 0) {
+        ctx.fillStyle = `rgba(${badgeColor}, ${0.08 + 0.14 * effectAlpha})`;
+        roundedRect(ctx, panelX + 8, rowTop - 1, panelWidth - 16, 16, 6);
+      }
+
       const best = entry.bestLapMs ? formatMs(entry.bestLapMs) : '--:--.---';
       const lapStr = entry.finished ? 'FIN' : `L${entry.lap}`;
-      ctx.fillText(`P${entry.rank} ${entry.displayName.padEnd(8).slice(0,8)} ${lapStr} ${best}`, x, 36 + i * lineH);
+
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillStyle = isMe ? '#f1c40f' : '#f4f4f4';
+      ctx.fillText(`P${entry.rank}`, rankX, rowTop);
+      ctx.fillStyle = isMe ? '#f7d774' : '#dddddd';
+      ctx.fillText(entry.displayName.slice(0, 8), nameX, rowTop);
+      ctx.fillStyle = 'rgba(255,255,255,0.82)';
+      ctx.fillText(lapStr, lapX, rowTop);
+
+      ctx.textAlign = 'right';
+      ctx.fillText(best, bestX, rowTop);
+
+      if (badgeText && effectAlpha > 0) {
+        ctx.font = 'bold 10px monospace';
+        ctx.textAlign = 'center';
+        const badgeWidth = Math.max(24, ctx.measureText(badgeText).width + 10);
+        const badgeX = panelX + panelWidth - badgeWidth - 12;
+        ctx.fillStyle = `rgba(${badgeColor}, ${0.16 + 0.24 * effectAlpha})`;
+        roundedRect(ctx, badgeX, rowTop - 1, badgeWidth, 14, 7);
+        ctx.fillStyle = badgeTextColor;
+        ctx.fillText(badgeText, badgeX + badgeWidth / 2, rowTop);
+      }
     });
+
+    ctx.restore();
+    ctx.textBaseline = 'alphabetic';
   }
 }
 
@@ -778,6 +910,11 @@ function rRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h
 }
 
 function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  traceRoundedRect(ctx, x, y, w, h, r);
+  ctx.fill();
+}
+
+function traceRoundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
   const r2 = Math.min(r, w / 2, h / 2);
   ctx.moveTo(x + r2, y);
@@ -790,7 +927,6 @@ function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   ctx.lineTo(x, y + r2);
   ctx.arcTo(x,     y,     x + r2, y,          r2);
   ctx.closePath();
-  ctx.fill();
 }
 
 function fillCircle(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number) {
@@ -811,4 +947,8 @@ function formatMs(ms: number): string {
   const seconds = Math.floor((ms % 60000) / 1000);
   const millis  = ms % 1000;
   return `${minutes}:${String(seconds).padStart(2,'0')}.${String(millis).padStart(3,'0')}`;
+}
+
+function easeOutCubic(t: number): number {
+  return 1 - Math.pow(1 - t, 3);
 }
