@@ -30,7 +30,7 @@
     { "col": 1, "row": 2, "type": "straight",  "rotation": 90  }
   ],
   "checkpoints": [
-    { "index": 0, "x": 240, "y": 144, "width": 192, "height": 32, "isFinishLine": true  },
+    { "index": 0, "x": 432, "y": 96,  "width": 32,  "height": 96, "isFinishLine": true  },
     { "index": 1, "x": 768, "y": 216, "width": 32,  "height": 48,  "isFinishLine": false },
     { "index": 2, "x": 768, "y": 312, "width": 32,  "height": 48,  "isFinishLine": false },
     { "index": 3, "x": 768, "y": 408, "width": 32,  "height": 48,  "isFinishLine": false },

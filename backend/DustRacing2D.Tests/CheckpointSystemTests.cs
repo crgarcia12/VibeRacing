@@ -33,10 +33,20 @@ public class CheckpointSystemTests
     {
         var track = LoadTrack("dusty-fields");
         var checkpoints = track.Checkpoints.OrderBy(cp => cp.Index).ToList();
+        var finishLine = checkpoints.Single(cp => cp.IsFinishLine);
         var system = new CheckpointSystem(track);
         var player = new PlayerState { CheckpointIndex = 0 };
 
         checkpoints.Should().HaveCount(10);
+        finishLine.Should().BeEquivalentTo(new
+        {
+            X = 432d,
+            Y = 96d,
+            Width = 32d,
+            Height = 96d,
+            IsFinishLine = true
+        });
+        finishLine.Height.Should().BeGreaterThan(finishLine.Width);
         checkpoints.Count(cp => !cp.IsFinishLine && cp.X == 768).Should().Be(4);
         checkpoints.Count(cp => !cp.IsFinishLine && cp.X == 96).Should().Be(4);
 

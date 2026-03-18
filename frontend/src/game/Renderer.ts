@@ -123,6 +123,7 @@ export class Renderer {
         const sq = 8;
         const cols = Math.ceil(cp.width  / sq);
         const rows = Math.ceil(cp.height / sq);
+        const isVerticalFinishLine = cp.height > cp.width;
         for (let r = 0; r < rows; r++) {
           for (let c = 0; c < cols; c++) {
             ctx.fillStyle = (r + c) % 2 === 0 ? '#ffffff' : '#111111';
@@ -133,8 +134,13 @@ export class Renderer {
         }
         // Red start/finish post markers
         ctx.fillStyle = 'rgba(255,50,50,0.85)';
-        ctx.fillRect(cp.x, cp.y, 4, cp.height);
-        ctx.fillRect(cp.x + cp.width - 4, cp.y, 4, cp.height);
+        if (isVerticalFinishLine) {
+          ctx.fillRect(cp.x, cp.y, cp.width, 4);
+          ctx.fillRect(cp.x, cp.y + cp.height - 4, cp.width, 4);
+        } else {
+          ctx.fillRect(cp.x, cp.y, 4, cp.height);
+          ctx.fillRect(cp.x + cp.width - 4, cp.y, 4, cp.height);
+        }
       }
     });
   }
