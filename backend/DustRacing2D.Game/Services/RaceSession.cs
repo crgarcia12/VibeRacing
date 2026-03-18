@@ -136,8 +136,7 @@ public class RaceSession : IAsyncDisposable
         List<object> rankings;
         lock (_room.Players)
         {
-            rankings = _room.Players.Values
-                .OrderBy(p => p.Rank)
+            rankings = RankingSystem.RankPlayers(_room.Players.Values, _track.Checkpoints.Count)
                 .Select(p => (object)new
                 {
                     p.Rank, p.PlayerId, p.DisplayName, p.Lap, p.BestLapMs, p.Finished
@@ -152,8 +151,7 @@ public class RaceSession : IAsyncDisposable
         List<object> results;
         lock (_room.Players)
         {
-            results = _room.Players.Values
-                .OrderBy(p => p.Rank)
+            results = RankingSystem.RankPlayers(_room.Players.Values, _track.Checkpoints.Count)
                 .Select(p => (object)new
                 {
                     p.Rank, p.PlayerId, p.DisplayName,
