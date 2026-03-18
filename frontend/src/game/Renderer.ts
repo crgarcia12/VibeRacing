@@ -768,10 +768,11 @@ export class Renderer {
     ctx.restore();
   }
 
-  private drawHUD(state: AppState, me: { lap: number; speed: number; lapTimeMs: number; rank: number }) {
+  private drawHUD(state: AppState, me: { lap: number; speed: number; lapTimeMs: number; rank: number; finished: boolean }) {
     const { ctx } = this;
     const track = this.track!;
     const totalLaps = state.raceResults ? state.raceResults.totalLaps : 3;
+    const displayLap = me.finished ? totalLaps : Math.min(me.lap, totalLaps);
 
     // Panel background
     ctx.fillStyle = 'rgba(0,0,0,0.65)';
@@ -785,7 +786,7 @@ export class Renderer {
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 13px monospace';
     const speed = Math.round((me.speed / 380) * 200);
-    ctx.fillText(`LAP   ${me.lap} / ${track ? totalLaps : 3}`, 16, 38);
+    ctx.fillText(`LAP   ${displayLap} / ${track ? totalLaps : 3}`, 16, 38);
     ctx.fillText(`POS   P${me.rank}`, 16, 54);
     ctx.fillText(`SPD   ${speed} km/h`, 16, 70);
     ctx.fillText(`TIME  ${formatMs(me.lapTimeMs)}`, 16, 86);

@@ -1,6 +1,13 @@
 import * as signalR from '@microsoft/signalr';
 import type { AppState } from '../state/AppState';
-import type { GameSnapshot, ScoreboardUpdate, RaceFinished, LobbyPlayer } from '../state/types';
+import type {
+  GameSnapshot,
+  ScoreboardEntry,
+  ScoreboardUpdate,
+  RaceFinished,
+  LobbyPlayer,
+  PlayerSnapshot,
+} from '../state/types';
 
 const HUB_URL = import.meta.env.VITE_HUB_URL ?? 'http://localhost:5000/racehub';
 
@@ -44,7 +51,7 @@ export class NetworkClient {
 
     this.connection.on('PlayerLeft', (data: { playerId: string }) => {
       this.state.lobbyPlayers = this.state.lobbyPlayers.filter(p => p.playerId !== data.playerId);
-      this.state.scoreboard = this.state.scoreboard.filter(p => p.playerId !== data.playerId);
+      this.setScoreboard(this.state.scoreboard.filter(p => p.playerId !== data.playerId));
       if (this.state.latestSnapshot) {
         this.state.latestSnapshot.players = this.state.latestSnapshot.players.filter(
           p => p.playerId !== data.playerId
@@ -76,13 +83,15 @@ export class NetworkClient {
       snapshot.players.forEach(p => {
         this.state.interpolatedPlayers.set(p.playerId, p);
       });
+      this.setScoreboard(this.buildScoreboardFromPlayers(snapshot.players));
       this.onStateChange();
     });
 
     this.connection.on('ScoreboardUpdate', (data: ScoreboardUpdate) => {
-      this.state.scoreboard = data.rankings;
-      this.state.scoreboardRevision += 1;
-      this.onStateChange();
+      if (!this.state.latestSnapshot) {
+        this.setScoreboard(data.rankings);
+        this.onStateChange();
+      }
     });
 
     this.connection.on('RaceFinished', (data: RaceFinished) => {
@@ -110,5 +119,36 @@ export class NetworkClient {
 
   sendInput(accelerate: boolean, brake: boolean, turnLeft: boolean, turnRight: boolean) {
     this.connection.send('SendInput', { accelerate, brake, turnLeft, turnRight });
+  }
+
+  private setScoreboard(nextScoreboard: ScoreboardEntry[]) {
+    if (this.hasScoreboardOrderChanged(nextScoreboard)) {
+      this.state.scoreboardRevision += 1;
+    }
+    this.state.scoreboard = nextScoreboard;
+  }
+
+  private hasScoreboardOrderChanged(nextScoreboard: ScoreboardEntry[]) {
+    if (nextScoreboard.length !== this.state.scoreboard.length) {
+      return true;
+    }
+
+    return nextScoreboard.some((entry, index) => {
+      const current = this.state.scoreboard[index];
+      return !current || current.playerId !== entry.playerId || current.rank !== entry.rank;
+    });
+  }
+
+  private buildScoreboardFromPlayers(players: PlayerSnapshot[]): ScoreboardEntry[] {
+    return [...players]
+      .sort((left, right) => left.rank - right.rank || left.playerId.localeCompare(right.playerId))
+      .map(player => ({
+        rank: player.rank,
+        playerId: player.playerId,
+        displayName: player.displayName,
+        lap: player.lap,
+        bestLapMs: player.bestLapMs,
+        finished: player.finished,
+      }));
   }
 }

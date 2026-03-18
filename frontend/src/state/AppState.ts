@@ -17,8 +17,8 @@ export interface AppState {
   // Race
   latestSnapshot: GameSnapshot | null;
   interpolatedPlayers: Map<string, PlayerSnapshot>; // Rendering cache only; lap/rank authority stays in backend snapshots.
-  scoreboard: ScoreboardEntry[];
-  scoreboardRevision: number; // Incremented only when the backend pushes a fresh scoreboard ordering.
+  scoreboard: ScoreboardEntry[]; // Displayed standings; rebuilt from authoritative snapshots so lap/finish data stays current.
+  scoreboardRevision: number; // Incremented whenever the displayed scoreboard ordering changes.
 
   // Results
   raceResults: RaceFinished | null;
