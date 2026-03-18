@@ -1,0 +1,48 @@
+{
+  "name": "Dusty Fields",
+  "cols": 10,
+  "rows": 8,
+  "tileSize": 96,
+  "tiles": [
+    { "col": 1, "row": 1, "type": "curve",    "rotation": 180 },
+    { "col": 2, "row": 1, "type": "straight",  "rotation": 0   },
+    { "col": 3, "row": 1, "type": "straight",  "rotation": 0   },
+    { "col": 4, "row": 1, "type": "straight",  "rotation": 0   },
+    { "col": 5, "row": 1, "type": "straight",  "rotation": 0   },
+    { "col": 6, "row": 1, "type": "straight",  "rotation": 0   },
+    { "col": 7, "row": 1, "type": "straight",  "rotation": 0   },
+    { "col": 8, "row": 1, "type": "curve",    "rotation": 270 },
+    { "col": 8, "row": 2, "type": "straight",  "rotation": 90  },
+    { "col": 8, "row": 3, "type": "straight",  "rotation": 90  },
+    { "col": 8, "row": 4, "type": "straight",  "rotation": 90  },
+    { "col": 8, "row": 5, "type": "straight",  "rotation": 90  },
+    { "col": 8, "row": 6, "type": "curve",    "rotation": 0   },
+    { "col": 7, "row": 6, "type": "straight",  "rotation": 0   },
+    { "col": 6, "row": 6, "type": "straight",  "rotation": 0   },
+    { "col": 5, "row": 6, "type": "straight",  "rotation": 0   },
+    { "col": 4, "row": 6, "type": "straight",  "rotation": 0   },
+    { "col": 3, "row": 6, "type": "straight",  "rotation": 0   },
+    { "col": 2, "row": 6, "type": "straight",  "rotation": 0   },
+    { "col": 1, "row": 6, "type": "curve",    "rotation": 90  },
+    { "col": 1, "row": 5, "type": "straight",  "rotation": 90  },
+    { "col": 1, "row": 4, "type": "straight",  "rotation": 90  },
+    { "col": 1, "row": 3, "type": "straight",  "rotation": 90  },
+    { "col": 1, "row": 2, "type": "straight",  "rotation": 90  }
+  ],
+  "checkpoints": [
+    { "index": 0, "x": 240, "y": 144, "width": 192, "height": 32, "isFinishLine": true  },
+    { "index": 1, "x": 768, "y": 336, "width": 32,  "height": 288, "isFinishLine": false },
+    { "index": 2, "x": 480, "y": 576, "width": 192, "height": 32, "isFinishLine": false },
+    { "index": 3, "x": 96,  "y": 336, "width": 32,  "height": 288, "isFinishLine": false }
+  ],
+  "startPositions": [
+    { "slot": 0, "x": 230, "y": 160, "angle": 0 },
+    { "slot": 1, "x": 230, "y": 175, "angle": 0 },
+    { "slot": 2, "x": 270, "y": 160, "angle": 0 },
+    { "slot": 3, "x": 270, "y": 175, "angle": 0 },
+    { "slot": 4, "x": 310, "y": 160, "angle": 0 },
+    { "slot": 5, "x": 310, "y": 175, "angle": 0 },
+    { "slot": 6, "x": 350, "y": 160, "angle": 0 },
+    { "slot": 7, "x": 350, "y": 175, "angle": 0 }
+  ]
+}

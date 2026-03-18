@@ -9,14 +9,45 @@
 *.tar.gz
 *.zip
 *.exe
-*.json
 log.txt
 manifest*
 .excludes
 *__*
 Makefile
-bin/
 build*
+
+# C++ build dirs (but not backend/frontend)
+bin/
+src/bin/
+
+# .NET / C# build artifacts
+[Bb]in/
+[Oo]bj/
+*.user
+.vs/
+*.suo
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.opendb
+*.VC.db
+TestResults/
+[Pp]ublish/
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+**/Properties/launchSettings.json
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
+frontend/.vite/
 dustrac.pro.user
 dustrac.pro.user.2.1pre1
 engine.txt
