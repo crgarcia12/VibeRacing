@@ -10,7 +10,7 @@ import type {
   TrackData,
 } from '../state/types';
 
-const HUB_URL = import.meta.env.VITE_HUB_URL ?? 'http://localhost:5000/racehub';
+const HUB_URL = import.meta.env.VITE_HUB_URL ?? getDefaultHubUrl();
 
 export class NetworkClient {
   private connection: signalR.HubConnection;
@@ -157,4 +157,20 @@ export class NetworkClient {
         finished: player.finished,
       }));
   }
+}
+
+function getDefaultHubUrl() {
+  if (typeof window === 'undefined') {
+    return 'http://localhost:5000/racehub';
+  }
+
+  const { hostname, port, origin } = window.location;
+  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+  const isFrontendDevPort = port === '3000' || port === '4173' || port === '5173' || port === '5174';
+
+  if (isLocalhost && isFrontendDevPort) {
+    return 'http://localhost:5000/racehub';
+  }
+
+  return `${origin}/racehub`;
 }

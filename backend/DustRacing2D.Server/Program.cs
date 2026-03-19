@@ -4,7 +4,6 @@ using DustRacing2D.Server.Hubs;
 var builder = WebApplication.CreateBuilder(args);
 
 var tracksDir = ResolveTracksDirectory(builder.Configuration);
-var allowedOrigins = ResolveAllowedOrigins(builder.Configuration);
 
 builder.Services.AddSingleton(new TrackLoader(tracksDir));
 builder.Services.AddSingleton<RoomManager>();
@@ -18,18 +17,9 @@ builder.Services.AddSignalR().AddJsonProtocol(options =>
     options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
     options.PayloadSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
 });
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(policy =>
-        policy.WithOrigins(allowedOrigins)
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials());
-});
 
 var app = builder.Build();
 
-app.UseCors();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.MapHub<RaceHub>("/racehub");
@@ -46,27 +36,4 @@ static string ResolveTracksDirectory(IConfiguration configuration)
     // Resolve shared tracks directory (../../shared/tracks relative to this project)
     return Path.GetFullPath(
         Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "shared", "tracks"));
-}
-
-static string[] ResolveAllowedOrigins(IConfiguration configuration)
-{
-    var origins = new[]
-    {
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:3000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174"
-    }.ToList();
-
-    string? configuredOrigins = configuration["CORS_ALLOWED_ORIGINS"];
-    if (!string.IsNullOrWhiteSpace(configuredOrigins))
-    {
-        origins.AddRange(configuredOrigins
-            .Split(new[] { ',', ';', ' ', '\r', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
-    }
-
-    return origins
-        .Distinct(StringComparer.OrdinalIgnoreCase)
-        .ToArray();
 }

@@ -193,14 +193,13 @@ jobs:
         run: |
           set -euo pipefail
 
-          backend_hub_url="${{ steps.deploy-backend.outputs.backend_url }}/racehub"
-
           az acr build \
             --registry "$AZURE_CONTAINER_REGISTRY" \
             --image "$FRONTEND_IMAGE_NAME:${GITHUB_SHA}" \
             --image "$FRONTEND_IMAGE_NAME:latest" \
             --file frontend/Dockerfile \
-            --build-arg "VITE_HUB_URL=${backend_hub_url}" \
+            --build-arg "VITE_HUB_URL=/racehub" \
+            --build-arg "BACKEND_ORIGIN=${{ steps.deploy-backend.outputs.backend_url }}" \
             --platform linux \
             .
 
@@ -248,21 +247,6 @@ jobs:
           frontend_fqdn="$(az containerapp show --name "$AZURE_FRONTEND_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" --query properties.configuration.ingress.fqdn -o tsv)"
           echo "frontend_url=https://${frontend_fqdn}" >> "$GITHUB_OUTPUT"
 
-      - name: Update backend CORS for frontend origin
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          frontend_origin="${{ steps.deploy-frontend.outputs.frontend_url }}"
-
-          az containerapp update \
-            --name "$AZURE_BACKEND_APP_NAME" \
-            --resource-group "$AZURE_RESOURCE_GROUP" \
-            --set-env-vars \
-              TRACKS_DIR=/app/shared/tracks \
-              "CORS_ALLOWED_ORIGINS=${frontend_origin}" \
-            >/dev/null
-
       - name: Write deployment summary
         shell: bash
         run: |
@@ -274,5 +258,6 @@ jobs:
             echo "- Resource group: ${AZURE_RESOURCE_GROUP}"
             echo "- Environment: ${AZURE_CONTAINERAPPS_ENVIRONMENT}"
             echo
+            echo "> Frontend proxies /racehub to the backend so the browser uses a same-origin connection and no backend CORS policy is required."
             echo "> Backend scaling is pinned to one replica because the game server keeps room state in memory."
           } >> "$GITHUB_STEP_SUMMARY"
