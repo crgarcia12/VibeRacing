@@ -1,0 +1,1037 @@
+import type { AppState } from '../state/AppState';
+import type { CheckpointData, TileData, TrackData } from '../state/types';
+
+// A distinct color per player slot
+const PLAYER_COLORS = ['#e74c3c','#3498db','#2ecc71','#f39c12','#9b59b6','#1abc9c','#e67e22','#e91e63'];
+const KERB_COLORS = ['#cc2222', '#eeeeee'];
+
+const CAR_LEN = 30;
+const CAR_WID = 18;
+const SCOREBOARD_LINE_HEIGHT = 20;
+const SCOREBOARD_MOVE_DURATION_MS = 420;
+const SCOREBOARD_FLASH_DURATION_MS = 1100;
+
+interface ScoreboardSnapshot {
+  rank: number;
+  rowIndex: number;
+}
+
+interface ScoreboardEffect {
+  delta: number;
+  direction: 'up' | 'down';
+  fromOffsetY: number;
+  startTime: number;
+}
+
+export class Renderer {
+  private canvas: HTMLCanvasElement;
+  private ctx: CanvasRenderingContext2D;
+  private track: TrackData | null = null;
+  private playerColorMap = new Map<string, string>();
+  private colorIndex = 0;
+  private scoreboardBaseline = new Map<string, ScoreboardSnapshot>();
+  private scoreboardEffects = new Map<string, ScoreboardEffect>();
+  private lastScoreboardRevision = 0;
+
+  constructor(canvas: HTMLCanvasElement) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d')!;
+  }
+
+  setTrack(track: TrackData) {
+    this.track = track;
+  }
+
+  private getPlayerColor(playerId: string): string {
+    if (!this.playerColorMap.has(playerId)) {
+      this.playerColorMap.set(playerId, PLAYER_COLORS[this.colorIndex % PLAYER_COLORS.length]);
+      this.colorIndex++;
+    }
+    return this.playerColorMap.get(playerId)!;
+  }
+
+  render(state: AppState) {
+    const { ctx, canvas } = this;
+    const me = state.latestSnapshot?.players.find(player => player.playerId === state.myPlayerId);
+    if (state.scoreboard.length === 0) {
+      this.resetScoreboardEffects();
+    } else {
+      this.syncScoreboardEffects(state);
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Background grass gradient
+    const bgGrad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    bgGrad.addColorStop(0, '#4a8b2d');
+    bgGrad.addColorStop(0.55, '#2f6e1b');
+    bgGrad.addColorStop(1, '#173a0d');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Subtle grass texture scan lines
+    ctx.globalAlpha = 0.04;
+    ctx.fillStyle = '#000';
+    for (let gy = 0; gy < canvas.height; gy += 5) ctx.fillRect(0, gy, canvas.width, 2);
+    ctx.globalAlpha = 1;
+
+    const vignette = ctx.createRadialGradient(
+      canvas.width / 2,
+      canvas.height * 0.44,
+      canvas.height * 0.16,
+      canvas.width / 2,
+      canvas.height / 2,
+      canvas.width * 0.7,
+    );
+    vignette.addColorStop(0, 'rgba(255,225,170,0)');
+    vignette.addColorStop(1, 'rgba(0,0,0,0.24)');
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (this.track) {
+      this.drawGroundVariation();
+      this.drawTrack(me?.nextCheckpointIndex ?? null);
+      this.drawTracksideProps();
+    }
+
+    // Draw all interpolated players
+    state.interpolatedPlayers.forEach(player => {
+      this.drawCar(player.x, player.y, player.angle, this.getPlayerColor(player.playerId),
+        player.displayName, player.playerId === state.myPlayerId);
+    });
+
+    // HUD progress comes from the latest backend snapshot, not the render cache.
+    if (me && this.track) {
+      this.drawHUD(state, me);
+    }
+
+    // Scoreboard panel
+    if (state.scoreboard.length > 0) {
+      this.drawScoreboard(state);
+    }
+  }
+
+  private drawTrack(nextCheckpointIndex: number | null) {
+    const { ctx, track } = this;
+    if (!track) return;
+    const ts = track.tileSize;
+    const curbWidth = Math.max(6, Math.round(ts * 0.083));
+    const stripeLength = Math.max(10, Math.round(ts * 0.125));
+    const curveOuterRadius = ts;
+    const curveInnerRadius = Math.max(curbWidth + 4, Math.round(ts * 0.12));
+    const curveRoadOuterRadius = curveOuterRadius - curbWidth;
+    const curveRoadInnerRadius = curveInnerRadius + curbWidth;
+
+    track.tiles.forEach(tile => {
+      const x = tile.col * ts;
+      const y = tile.row * ts;
+
+      ctx.save();
+      ctx.translate(x + ts / 2, y + ts / 2);
+      ctx.rotate((tile.rotation * Math.PI) / 180);
+
+      if (tile.type === 'curve') {
+        this.drawCurveTile(ts, curveInnerRadius, curveRoadInnerRadius, curveRoadOuterRadius, curveOuterRadius, stripeLength);
+      } else {
+        this.drawStraightTile(ts, curbWidth, stripeLength);
+      }
+
+      this.drawLaneMarking(tile, ts, curveRoadInnerRadius, curveRoadOuterRadius);
+
+      ctx.restore();
+    });
+
+    // --- Finish line (checkerboard) ---
+    track.checkpoints.forEach(cp => {
+      const isNextCheckpoint = nextCheckpointIndex !== null && cp.index === nextCheckpointIndex;
+      if (!cp.isFinishLine) {
+        this.drawCheckpointLine(cp, isNextCheckpoint);
+        return;
+      }
+
+      if (cp.isFinishLine) {
+        const sq = 8;
+        const cols = Math.ceil(cp.width  / sq);
+        const rows = Math.ceil(cp.height / sq);
+        const isVerticalFinishLine = cp.height > cp.width;
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            ctx.fillStyle = (r + c) % 2 === 0 ? '#ffffff' : '#111111';
+            ctx.fillRect(cp.x + c * sq, cp.y + r * sq,
+              Math.min(sq, cp.x + cp.width  - (cp.x + c * sq)),
+              Math.min(sq, cp.y + cp.height - (cp.y + r * sq)));
+          }
+        }
+        // Red start/finish post markers
+        ctx.fillStyle = 'rgba(255,50,50,0.85)';
+        if (isVerticalFinishLine) {
+          ctx.fillRect(cp.x, cp.y, cp.width, 4);
+          ctx.fillRect(cp.x, cp.y + cp.height - 4, cp.width, 4);
+        } else {
+          ctx.fillRect(cp.x, cp.y, 4, cp.height);
+          ctx.fillRect(cp.x + cp.width - 4, cp.y, 4, cp.height);
+        }
+
+        if (isNextCheckpoint) {
+          this.drawNextCheckpointHighlight(cp);
+        }
+      }
+    });
+  }
+
+  private drawCheckpointLine(cp: CheckpointData, isNextCheckpoint: boolean) {
+    const { ctx } = this;
+    const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 180);
+
+    ctx.save();
+    ctx.fillStyle = isNextCheckpoint
+      ? `rgba(255, 208, 96, ${0.22 + pulse * 0.16})`
+      : 'rgba(93, 214, 255, 0.12)';
+    ctx.fillRect(cp.x, cp.y, cp.width, cp.height);
+
+    ctx.strokeStyle = isNextCheckpoint
+      ? `rgba(255, 244, 186, ${0.78 + pulse * 0.22})`
+      : 'rgba(191, 242, 255, 0.42)';
+    ctx.lineWidth = isNextCheckpoint ? 3 : 2;
+
+    if (isNextCheckpoint) {
+      ctx.shadowColor = `rgba(255, 208, 96, ${0.44 + pulse * 0.26})`;
+      ctx.shadowBlur = 12 + pulse * 8;
+    }
+
+    ctx.strokeRect(cp.x + 1, cp.y + 1, Math.max(cp.width - 2, 0), Math.max(cp.height - 2, 0));
+    ctx.restore();
+  }
+
+  private drawNextCheckpointHighlight(cp: CheckpointData) {
+    const { ctx } = this;
+    const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 180);
+
+    ctx.save();
+    ctx.fillStyle = `rgba(255, 208, 96, ${0.08 + pulse * 0.08})`;
+    ctx.fillRect(cp.x - 1, cp.y - 1, cp.width + 2, cp.height + 2);
+    ctx.strokeStyle = `rgba(255, 244, 186, ${0.72 + pulse * 0.28})`;
+    ctx.lineWidth = 4;
+    ctx.shadowColor = `rgba(255, 208, 96, ${0.48 + pulse * 0.24})`;
+    ctx.shadowBlur = 16 + pulse * 10;
+    ctx.strokeRect(cp.x - 2, cp.y - 2, cp.width + 4, cp.height + 4);
+    ctx.restore();
+  }
+
+  private fillRoadSurface(ts: number, clipPath?: () => void) {
+    const { ctx } = this;
+    const roadGrad = ctx.createLinearGradient(-ts / 2, 0, ts / 2, 0);
+    roadGrad.addColorStop(0, '#4a4a4a');
+    roadGrad.addColorStop(0.5, '#525252');
+    roadGrad.addColorStop(1, '#474747');
+
+    ctx.fillStyle = roadGrad;
+    if (clipPath) {
+      clipPath();
+      ctx.fill();
+    } else {
+      ctx.fillRect(-ts / 2, -ts / 2, ts, ts);
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-ts / 2 + 3, -ts / 2 + 3, ts - 6, ts - 6);
+    }
+
+    ctx.save();
+    if (clipPath) {
+      clipPath();
+      ctx.clip();
+    }
+    ctx.globalAlpha = 0.025;
+    ctx.fillStyle = '#000';
+    for (let ny = -ts / 2; ny < ts / 2; ny += 6) {
+      ctx.fillRect(-ts / 2, ny, ts, 3);
+    }
+    ctx.restore();
+  }
+
+  private drawStraightTile(ts: number, curbWidth: number, stripeLength: number) {
+    const { ctx } = this;
+    ctx.fillStyle = 'rgba(0,0,0,0.16)';
+    ctx.fillRect(-ts / 2 + 5, -ts / 2 + 7, ts, ts);
+    this.fillRoadSurface(ts);
+
+    const stripeCount = Math.ceil(ts / stripeLength);
+    for (let stripeIndex = 0; stripeIndex < stripeCount; stripeIndex++) {
+      const startX = -ts / 2 + stripeIndex * stripeLength;
+      const endX = Math.min(ts / 2, startX + stripeLength);
+      const width = endX - startX;
+      if (width <= 0) continue;
+
+      ctx.fillStyle = KERB_COLORS[stripeIndex % KERB_COLORS.length];
+      ctx.fillRect(startX, -ts / 2, width, curbWidth);
+      ctx.fillRect(startX, ts / 2 - curbWidth, width, curbWidth);
+    }
+  }
+
+  private drawCurveTile(
+    ts: number,
+    curveInnerRadius: number,
+    roadInnerRadius: number,
+    roadOuterRadius: number,
+    curveOuterRadius: number,
+    stripeLength: number,
+  ) {
+    const { ctx } = this;
+    ctx.save();
+    ctx.translate(5, 7);
+    ctx.fillStyle = 'rgba(0,0,0,0.16)';
+    this.traceCurveBand(ts, curveOuterRadius, curveInnerRadius);
+    ctx.fill();
+    ctx.restore();
+
+    this.fillRoadSurface(ts, () => this.traceCurveBand(ts, roadOuterRadius, roadInnerRadius));
+    this.drawStripedCurveBand(ts, curveOuterRadius, roadOuterRadius, stripeLength);
+    this.drawStripedCurveBand(ts, roadInnerRadius, curveInnerRadius, stripeLength);
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(-ts / 2, -ts / 2, curveOuterRadius - 3, 0, Math.PI / 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(-ts / 2, -ts / 2, curveInnerRadius + 3, 0, Math.PI / 2);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+    ctx.lineWidth = 1.25;
+    ctx.beginPath();
+    ctx.arc(-ts / 2, -ts / 2, roadOuterRadius, 0, Math.PI / 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(-ts / 2, -ts / 2, roadInnerRadius, 0, Math.PI / 2);
+    ctx.stroke();
+  }
+
+  private traceCurveBand(ts: number, outerRadius: number, innerRadius: number) {
+    const { ctx } = this;
+    ctx.beginPath();
+    ctx.arc(-ts / 2, -ts / 2, outerRadius, 0, Math.PI / 2, false);
+    ctx.arc(-ts / 2, -ts / 2, innerRadius, Math.PI / 2, 0, true);
+    ctx.closePath();
+  }
+
+  private drawStripedCurveBand(ts: number, outerRadius: number, innerRadius: number, stripeLength: number) {
+    const { ctx } = this;
+    const arcLength = ((outerRadius + innerRadius) / 2) * (Math.PI / 2);
+    const stripeCount = Math.max(1, Math.ceil(arcLength / stripeLength));
+    const angleStep = (Math.PI / 2) / stripeCount;
+
+    for (let stripeIndex = 0; stripeIndex < stripeCount; stripeIndex++) {
+      const startAngle = stripeIndex * angleStep;
+      const endAngle = startAngle + angleStep;
+      ctx.fillStyle = KERB_COLORS[stripeIndex % KERB_COLORS.length];
+      ctx.beginPath();
+      ctx.arc(-ts / 2, -ts / 2, outerRadius, startAngle, endAngle, false);
+      ctx.arc(-ts / 2, -ts / 2, innerRadius, endAngle, startAngle, true);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  private drawLaneMarking(tile: TileData, ts: number, curveRoadInnerRadius: number, curveRoadOuterRadius: number) {
+    const { ctx } = this;
+    ctx.strokeStyle = 'rgba(255,255,255,0.38)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([20, 18]);
+
+    if (tile.type === 'straight') {
+      ctx.beginPath();
+      ctx.moveTo(-ts / 2, 0);
+      ctx.lineTo(ts / 2, 0);
+      ctx.stroke();
+    } else if (tile.type === 'curve') {
+      const centerLineRadius = (curveRoadInnerRadius + curveRoadOuterRadius) / 2;
+      ctx.beginPath();
+      ctx.arc(-ts / 2, -ts / 2, centerLineRadius, 0, Math.PI / 2);
+      ctx.stroke();
+    }
+
+    ctx.setLineDash([]);
+  }
+
+  private drawGroundVariation() {
+    const { ctx, canvas, track } = this;
+    if (!track) return;
+
+    const { minX, maxX, minY, maxY } = this.getTrackBounds();
+    const ts = track.tileSize;
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+
+    const dustGlow = ctx.createRadialGradient(
+      centerX,
+      centerY - ts * 0.7,
+      ts * 0.35,
+      centerX,
+      centerY,
+      ts * 4.8,
+    );
+    dustGlow.addColorStop(0, 'rgba(214,182,103,0.18)');
+    dustGlow.addColorStop(0.45, 'rgba(120,98,46,0.1)');
+    dustGlow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = dustGlow;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    [
+      { x: centerX, y: centerY, rx: ts * 2.45, ry: ts * 1.55, rotation: 0.16, color: 'rgba(66,110,40,0.22)' },
+      { x: centerX - ts * 2.2, y: centerY - ts * 1.45, rx: ts * 1.2, ry: ts * 0.8, rotation: -0.42, color: 'rgba(52,88,31,0.19)' },
+      { x: centerX + ts * 2.1, y: centerY - ts * 1.55, rx: ts * 1.15, ry: ts * 0.72, rotation: 0.34, color: 'rgba(137,112,58,0.16)' },
+      { x: centerX + ts * 2.15, y: centerY + ts * 1.2, rx: ts * 1.2, ry: ts * 0.78, rotation: -0.28, color: 'rgba(54,82,31,0.17)' },
+      { x: centerX - ts * 2.15, y: centerY + ts * 1.35, rx: ts * 1.28, ry: ts * 0.82, rotation: 0.38, color: 'rgba(132,101,55,0.16)' },
+      { x: minX - ts * 0.35, y: centerY, rx: ts * 0.9, ry: ts * 1.72, rotation: -0.12, color: 'rgba(40,75,26,0.18)' },
+      { x: maxX + ts * 0.35, y: centerY, rx: ts * 0.9, ry: ts * 1.72, rotation: 0.12, color: 'rgba(40,75,26,0.18)' },
+      { x: minX + ts * 0.35, y: minY - ts * 0.32, rx: ts * 0.9, ry: ts * 0.52, rotation: -0.22, color: 'rgba(148,123,67,0.15)' },
+      { x: maxX - ts * 0.35, y: minY - ts * 0.28, rx: ts * 0.95, ry: ts * 0.56, rotation: 0.18, color: 'rgba(148,123,67,0.15)' },
+      { x: minX + ts * 0.38, y: maxY + ts * 0.28, rx: ts * 0.98, ry: ts * 0.58, rotation: 0.18, color: 'rgba(143,115,63,0.15)' },
+      { x: maxX - ts * 0.38, y: maxY + ts * 0.3, rx: ts * 0.92, ry: ts * 0.56, rotation: -0.18, color: 'rgba(143,115,63,0.15)' },
+    ].forEach(patch => this.drawGroundPatch(patch.x, patch.y, patch.rx, patch.ry, patch.rotation, patch.color));
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(126,101,58,0.18)';
+    ctx.lineWidth = ts * 0.28;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(minX + ts * 1.3, centerY + ts * 1.08);
+    ctx.bezierCurveTo(
+      centerX - ts * 1.35,
+      centerY + ts * 0.7,
+      centerX + ts * 0.9,
+      centerY - ts * 1.12,
+      maxX - ts * 1.12,
+      centerY - ts * 0.96,
+    );
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,231,180,0.06)';
+    ctx.lineWidth = ts * 0.1;
+    ctx.beginPath();
+    ctx.moveTo(minX + ts * 1.26, centerY + ts * 1.12);
+    ctx.bezierCurveTo(
+      centerX - ts * 1.28,
+      centerY + ts * 0.78,
+      centerX + ts * 0.84,
+      centerY - ts * 1.02,
+      maxX - ts * 1.04,
+      centerY - ts * 0.9,
+    );
+    ctx.stroke();
+    ctx.restore();
+
+    [
+      { x: centerX - ts * 1.1, y: centerY - ts * 0.2, scale: 0.85, color: '#6ba74c' },
+      { x: centerX + ts * 0.45, y: centerY - ts * 0.62, scale: 0.78, color: '#74b652' },
+      { x: centerX + ts * 0.95, y: centerY + ts * 0.55, scale: 0.88, color: '#5f9d41' },
+      { x: centerX - ts * 1.35, y: centerY + ts * 0.82, scale: 0.82, color: '#6fad46' },
+      { x: minX - ts * 0.16, y: centerY - ts * 0.85, scale: 0.76, color: '#5b8f3a' },
+      { x: maxX + ts * 0.12, y: centerY + ts * 0.92, scale: 0.74, color: '#5b8f3a' },
+      { x: minX + ts * 0.6, y: minY - ts * 0.08, scale: 0.68, color: '#78b95a' },
+      { x: maxX - ts * 0.58, y: maxY + ts * 0.12, scale: 0.72, color: '#6aa548' },
+    ].forEach(tuft => this.drawGrassTuft(tuft.x, tuft.y, tuft.scale, tuft.color));
+  }
+
+  private drawTracksideProps() {
+    const { ctx, track } = this;
+    if (!track) return;
+
+    const { minX, maxX, minY, maxY } = this.getTrackBounds();
+    const ts = track.tileSize;
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    const fenceOffset = ts * 0.32;
+    const straightFenceInset = ts;
+    const curveFenceSpacing = Math.max(24, ts * 0.28);
+
+    this.drawFence(minX + straightFenceInset, minY - fenceOffset, maxX - straightFenceInset, minY - fenceOffset, 28);
+    this.drawFence(minX + straightFenceInset, maxY + fenceOffset, maxX - straightFenceInset, maxY + fenceOffset, 28);
+    this.drawFence(minX - fenceOffset, minY + straightFenceInset, minX - fenceOffset, maxY - straightFenceInset, 26);
+    this.drawFence(maxX + fenceOffset, minY + straightFenceInset, maxX + fenceOffset, maxY - straightFenceInset, 26);
+    this.drawInnerTrackFences(minX, maxX, minY, maxY, ts, fenceOffset, curveFenceSpacing);
+
+    track.tiles.forEach(tile => {
+      if (tile.type !== 'curve') return;
+
+      const tileX = tile.col * ts;
+      const tileY = tile.row * ts;
+      const isOuterCorner = (tileX === minX || tileX === maxX - ts) && (tileY === minY || tileY === maxY - ts);
+      if (!isOuterCorner) return;
+
+      ctx.save();
+      ctx.translate(tileX + ts / 2, tileY + ts / 2);
+      ctx.rotate((tile.rotation * Math.PI) / 180);
+      this.drawCurveFence(-ts / 2, -ts / 2, ts + fenceOffset, 0, Math.PI / 2, curveFenceSpacing);
+      ctx.restore();
+    });
+
+    [
+      { x: minX - ts * 0.46, y: minY + ts * 1.25, scale: 1.04, foliage: '#3a7436' },
+      { x: maxX + ts * 0.46, y: minY + ts * 1.12, scale: 1.08, foliage: '#356f34' },
+      { x: maxX + ts * 0.38, y: maxY + ts * 0.42, scale: 1.02, foliage: '#2f612f' },
+      { x: minX - ts * 0.42, y: maxY + ts * 0.48, scale: 0.98, foliage: '#376d34' },
+      { x: centerX - ts * 1.65, y: centerY - ts * 0.95, scale: 0.92, foliage: '#417d3c' },
+      { x: centerX + ts * 1.58, y: centerY - ts * 1.04, scale: 0.96, foliage: '#396f36' },
+      { x: centerX + ts * 1.15, y: centerY + ts * 1.02, scale: 0.9, foliage: '#437e3d' },
+      { x: centerX - ts * 1.72, y: centerY + ts * 1.18, scale: 0.88, foliage: '#386f35' },
+    ].forEach(tree => this.drawTree(tree.x, tree.y, tree.scale, tree.foliage));
+
+    [
+      { x: minX + ts * 0.55, y: minY - ts * 0.2, scale: 0.86, color: '#538f40' },
+      { x: maxX - ts * 0.55, y: minY - ts * 0.18, scale: 0.84, color: '#5b9646' },
+      { x: minX + ts * 0.48, y: maxY + ts * 0.12, scale: 0.9, color: '#4f8a3d' },
+      { x: maxX - ts * 0.44, y: maxY + ts * 0.18, scale: 0.88, color: '#538f40' },
+      { x: centerX, y: centerY - ts * 1.55, scale: 0.8, color: '#629b4c' },
+      { x: centerX + ts * 0.55, y: centerY + ts * 1.44, scale: 0.76, color: '#5b9646' },
+      { x: centerX - ts * 0.82, y: centerY + ts * 1.32, scale: 0.72, color: '#5a9547' },
+      { x: centerX - ts * 0.38, y: centerY - ts * 1.25, scale: 0.68, color: '#6ba74f' },
+    ].forEach(shrub => this.drawShrubCluster(shrub.x, shrub.y, shrub.scale, shrub.color));
+
+    [
+      { x: centerX - ts * 0.22, y: centerY + ts * 0.18, scale: 1 },
+      { x: centerX + ts * 0.62, y: centerY - ts * 0.42, scale: 0.86 },
+      { x: minX - ts * 0.1, y: centerY - ts * 1.05, scale: 0.78 },
+      { x: maxX + ts * 0.06, y: centerY + ts * 1.15, scale: 0.82 },
+    ].forEach(rock => this.drawRockCluster(rock.x, rock.y, rock.scale));
+  }
+
+  private drawInnerTrackFences(
+    minX: number,
+    maxX: number,
+    minY: number,
+    maxY: number,
+    tileSize: number,
+    fenceOffset: number,
+    curveFenceSpacing: number,
+  ) {
+    const innerMinX = minX + tileSize;
+    const innerMaxX = maxX - tileSize;
+    const innerMinY = minY + tileSize;
+    const innerMaxY = maxY - tileSize;
+    if (innerMaxX <= innerMinX || innerMaxY <= innerMinY) return;
+
+    const topFenceY = innerMinY + fenceOffset;
+    const bottomFenceY = innerMaxY - fenceOffset;
+    const leftFenceX = innerMinX + fenceOffset;
+    const rightFenceX = innerMaxX - fenceOffset;
+    const innerPostSpacing = Math.max(22, curveFenceSpacing - 4);
+
+    this.drawFence(innerMinX, topFenceY, innerMaxX, topFenceY, innerPostSpacing);
+    this.drawFence(innerMinX, bottomFenceY, innerMaxX, bottomFenceY, innerPostSpacing);
+    this.drawFence(leftFenceX, innerMinY, leftFenceX, innerMaxY, innerPostSpacing);
+    this.drawFence(rightFenceX, innerMinY, rightFenceX, innerMaxY, innerPostSpacing);
+
+    this.drawCurveFence(innerMinX, innerMinY, fenceOffset, 0, Math.PI / 2, innerPostSpacing);
+    this.drawCurveFence(innerMaxX, innerMinY, fenceOffset, Math.PI / 2, Math.PI, innerPostSpacing);
+    this.drawCurveFence(innerMaxX, innerMaxY, fenceOffset, Math.PI, (3 * Math.PI) / 2, innerPostSpacing);
+    this.drawCurveFence(innerMinX, innerMaxY, fenceOffset, (3 * Math.PI) / 2, Math.PI * 2, innerPostSpacing);
+  }
+
+  private drawGroundPatch(x: number, y: number, rx: number, ry: number, rotation: number, color: string) {
+    const { ctx } = this;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rotation);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  private drawGrassTuft(x: number, y: number, scale: number, color: string) {
+    const { ctx } = this;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(1, scale * 1.25);
+    ctx.lineCap = 'round';
+
+    [
+      { cpX: -4, cpY: -10, endX: -7, endY: -16 },
+      { cpX: -1, cpY: -16, endX: 0, endY: -24 },
+      { cpX: 3, cpY: -12, endX: 7, endY: -19 },
+      { cpX: 7, cpY: -9, endX: 11, endY: -15 },
+    ].forEach(blade => {
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(blade.cpX * scale, blade.cpY * scale, blade.endX * scale, blade.endY * scale);
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+
+  private drawTree(x: number, y: number, scale: number, foliage: string) {
+    const { ctx } = this;
+    const trunkW = 8 * scale;
+    const trunkH = 24 * scale;
+
+    ctx.save();
+    ctx.translate(x, y);
+
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.beginPath();
+    ctx.ellipse(8 * scale, 20 * scale, 23 * scale, 9 * scale, -0.28, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#6f4921';
+    roundedRect(ctx, -trunkW / 2, 3 * scale, trunkW, trunkH, 2 * scale);
+    ctx.fillStyle = '#8c5a29';
+    ctx.fillRect(-scale, 4 * scale, 2 * scale, trunkH - 4 * scale);
+
+    ctx.fillStyle = darkenHex(foliage, 40);
+    fillCircle(ctx, -12 * scale, -2 * scale, 13 * scale);
+    fillCircle(ctx, 12 * scale, -4 * scale, 14 * scale);
+    fillCircle(ctx, 0, -13 * scale, 18 * scale);
+
+    ctx.fillStyle = foliage;
+    fillCircle(ctx, -14 * scale, -8 * scale, 12 * scale);
+    fillCircle(ctx, 10 * scale, -11 * scale, 13 * scale);
+    fillCircle(ctx, 0, -18 * scale, 15 * scale);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+    fillCircle(ctx, -5 * scale, -18 * scale, 6 * scale);
+    ctx.restore();
+  }
+
+  private drawShrubCluster(x: number, y: number, scale: number, color: string) {
+    const { ctx } = this;
+    ctx.save();
+    ctx.translate(x, y);
+
+    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+    ctx.beginPath();
+    ctx.ellipse(4 * scale, 8 * scale, 18 * scale, 7 * scale, -0.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = darkenHex(color, 32);
+    fillCircle(ctx, -12 * scale, 1 * scale, 8 * scale);
+    fillCircle(ctx, 0, -3 * scale, 9 * scale);
+    fillCircle(ctx, 11 * scale, 2 * scale, 8 * scale);
+
+    ctx.fillStyle = color;
+    fillCircle(ctx, -10 * scale, -2 * scale, 7 * scale);
+    fillCircle(ctx, 1 * scale, -5 * scale, 8 * scale);
+    fillCircle(ctx, 10 * scale, 0, 7 * scale);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    fillCircle(ctx, -2 * scale, -5 * scale, 4 * scale);
+    ctx.restore();
+  }
+
+  private drawRockCluster(x: number, y: number, scale: number) {
+    const { ctx } = this;
+    ctx.save();
+    ctx.translate(x, y);
+
+    ctx.fillStyle = 'rgba(0,0,0,0.14)';
+    ctx.beginPath();
+    ctx.ellipse(4 * scale, 8 * scale, 20 * scale, 8 * scale, -0.12, 0, Math.PI * 2);
+    ctx.fill();
+
+    [
+      { x: -12, y: 1, rx: 9, ry: 7, color: '#8e8c79' },
+      { x: 0, y: -4, rx: 11, ry: 8, color: '#9a967f' },
+      { x: 13, y: 2, rx: 8, ry: 6, color: '#7f7d6b' },
+    ].forEach(rock => {
+      ctx.fillStyle = rock.color;
+      ctx.beginPath();
+      ctx.ellipse(rock.x * scale, rock.y * scale, rock.rx * scale, rock.ry * scale, -0.18, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      ctx.beginPath();
+      ctx.ellipse((rock.x - 2) * scale, (rock.y - 2) * scale, rock.rx * scale * 0.38, rock.ry * scale * 0.28, -0.18, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    ctx.restore();
+  }
+
+  private drawFence(startX: number, startY: number, endX: number, endY: number, postSpacing: number) {
+    const { ctx } = this;
+    const dx = endX - startX;
+    const dy = endY - startY;
+    const length = Math.hypot(dx, dy);
+    if (!length) return;
+
+    ctx.save();
+    ctx.translate(startX, startY);
+    ctx.rotate(Math.atan2(dy, dx));
+
+    ctx.fillStyle = 'rgba(0,0,0,0.14)';
+    roundedRect(ctx, 0, -2, length, 6, 3);
+
+    ctx.fillStyle = '#7d5a36';
+    roundedRect(ctx, 0, -11, length, 4, 2);
+    roundedRect(ctx, 0, -1, length, 4, 2);
+
+    for (let post = 0; post <= length; post += postSpacing) {
+      ctx.fillStyle = '#9f7548';
+      roundedRect(ctx, post - 2, -16, 4, 24, 2);
+      ctx.fillStyle = '#c79a63';
+      ctx.fillRect(post - 1, -16, 1, 18);
+    }
+
+    ctx.restore();
+  }
+
+  private drawCurveFence(
+    centerX: number,
+    centerY: number,
+    radius: number,
+    startAngle: number,
+    endAngle: number,
+    postSpacing: number,
+  ) {
+    const { ctx } = this;
+    const arcLength = radius * Math.abs(endAngle - startAngle);
+    if (!arcLength) return;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.14)';
+    this.fillArcBand(centerX, centerY, radius + 4, radius - 2, startAngle, endAngle);
+
+    ctx.fillStyle = '#7d5a36';
+    this.fillArcBand(centerX, centerY, radius - 7, radius - 11, startAngle, endAngle);
+    this.fillArcBand(centerX, centerY, radius + 3, radius - 1, startAngle, endAngle);
+
+    const postCount = Math.max(2, Math.round(arcLength / postSpacing));
+    for (let postIndex = 0; postIndex <= postCount; postIndex++) {
+      const angle = startAngle + ((endAngle - startAngle) * postIndex) / postCount;
+      const postX = centerX + Math.cos(angle) * radius;
+      const postY = centerY + Math.sin(angle) * radius;
+
+      ctx.save();
+      ctx.translate(postX, postY);
+      ctx.rotate(angle + Math.PI / 2);
+      ctx.fillStyle = '#9f7548';
+      roundedRect(ctx, -2, -16, 4, 24, 2);
+      ctx.fillStyle = '#c79a63';
+      ctx.fillRect(-1, -16, 1, 18);
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  private fillArcBand(
+    centerX: number,
+    centerY: number,
+    outerRadius: number,
+    innerRadius: number,
+    startAngle: number,
+    endAngle: number,
+  ) {
+    const { ctx } = this;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, outerRadius, startAngle, endAngle, false);
+    ctx.arc(centerX, centerY, innerRadius, endAngle, startAngle, true);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  private getTrackBounds() {
+    const track = this.track!;
+    const cols = track.tiles.map(tile => tile.col);
+    const rows = track.tiles.map(tile => tile.row);
+    const ts = track.tileSize;
+
+    return {
+      minX: Math.min(...cols) * ts,
+      maxX: (Math.max(...cols) + 1) * ts,
+      minY: Math.min(...rows) * ts,
+      maxY: (Math.max(...rows) + 1) * ts,
+    };
+  }
+
+  private drawCar(x: number, y: number, angle: number, color: string, name: string, isMe: boolean) {
+    const { ctx } = this;
+    const hl = CAR_LEN / 2;
+    const hw = CAR_WID / 2;
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+
+    // Drop shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.30)';
+    ctx.beginPath();
+    ctx.ellipse(4, 5, hl * 0.9, hw * 0.9, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Car body (rounded rect)
+    ctx.fillStyle = color;
+    rRect(ctx, -hl, -hw, CAR_LEN, CAR_WID, 4);
+
+    // Windshield
+    ctx.fillStyle = 'rgba(160,220,255,0.82)';
+    rRect(ctx, 2, -hw + 3, hl * 0.7, CAR_WID - 6, 2);
+
+    // Rear spoiler + nose (darker shade of body color)
+    const dark = darkenHex(color, 55);
+    ctx.fillStyle = dark;
+    ctx.fillRect(-hl - 4, -hw - 3, 6, CAR_WID + 6);  // spoiler
+    ctx.fillRect( hl - 4, -hw + 2, 5, CAR_WID - 4);  // nose
+
+    // Wheels (4 corners)
+    ctx.fillStyle = '#1a1a1a';
+    const wx = hl * 0.34, wy = hw + 2;
+    ctx.fillRect(-wx - 5, -wy,     10, 5);
+    ctx.fillRect(-wx - 5,  wy - 5, 10, 5);
+    ctx.fillRect( wx - 4, -wy,     10, 5);
+    ctx.fillRect( wx - 4,  wy - 5, 10, 5);
+
+    // Wheel highlights
+    ctx.fillStyle = '#444';
+    ctx.fillRect(-wx - 3, -wy + 1,   4, 3);
+    ctx.fillRect(-wx - 3,  wy - 4,   4, 3);
+    ctx.fillRect( wx - 2, -wy + 1,   4, 3);
+    ctx.fillRect( wx - 2,  wy - 4,   4, 3);
+
+    // White outline for local player
+    if (isMe) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      if ((ctx as any).roundRect) {
+        (ctx as any).roundRect(-hl, -hw, CAR_LEN, CAR_WID, 4);
+      } else {
+        ctx.rect(-hl, -hw, CAR_LEN, CAR_WID);
+      }
+      ctx.stroke();
+    }
+
+    ctx.restore();
+
+    // Name label with subtle background
+    ctx.save();
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    const labelW = ctx.measureText(name).width + 8;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(x - labelW / 2, y - hl - 18, labelW, 13);
+    ctx.fillStyle = isMe ? '#f1c40f' : '#ffffff';
+    ctx.fillText(name, x, y - hl - 6);
+    ctx.restore();
+  }
+
+  private drawHUD(state: AppState, me: { lap: number; speed: number; lapTimeMs: number; rank: number; finished: boolean }) {
+    const { ctx } = this;
+    const track = this.track!;
+    const totalLaps = state.raceResults ? state.raceResults.totalLaps : 3;
+    const displayLap = me.finished ? totalLaps : Math.min(me.lap, totalLaps);
+
+    // Panel background
+    ctx.fillStyle = 'rgba(0,0,0,0.65)';
+    roundedRect(ctx, 8, 8, 164, 88, 8);
+
+    ctx.fillStyle = '#e94560';
+    ctx.font = 'bold 9px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('DUST RACING 2D', 16, 22);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 13px monospace';
+    const speed = Math.round((me.speed / 380) * 200);
+    ctx.fillText(`LAP   ${displayLap} / ${track ? totalLaps : 3}`, 16, 38);
+    ctx.fillText(`POS   P${me.rank}`, 16, 54);
+    ctx.fillText(`SPD   ${speed} km/h`, 16, 70);
+    ctx.fillText(`TIME  ${formatMs(me.lapTimeMs)}`, 16, 86);
+  }
+
+  private resetScoreboardEffects() {
+    this.scoreboardBaseline.clear();
+    this.scoreboardEffects.clear();
+    this.lastScoreboardRevision = 0;
+  }
+
+  private syncScoreboardEffects(state: AppState) {
+    if (state.scoreboardRevision === this.lastScoreboardRevision) return;
+
+    const now = performance.now();
+    const nextBaseline = new Map<string, ScoreboardSnapshot>();
+
+    state.scoreboard.forEach((entry, rowIndex) => {
+      nextBaseline.set(entry.playerId, { rank: entry.rank, rowIndex });
+
+      const previous = this.scoreboardBaseline.get(entry.playerId);
+      if (!previous) return;
+
+      const rankDelta = previous.rank - entry.rank;
+      if (rankDelta === 0) return;
+
+      this.scoreboardEffects.set(entry.playerId, {
+        delta: Math.abs(rankDelta),
+        direction: rankDelta > 0 ? 'up' : 'down',
+        fromOffsetY: (previous.rowIndex - rowIndex) * SCOREBOARD_LINE_HEIGHT,
+        startTime: now,
+      });
+    });
+
+    for (const playerId of Array.from(this.scoreboardEffects.keys())) {
+      if (!nextBaseline.has(playerId)) {
+        this.scoreboardEffects.delete(playerId);
+      }
+    }
+
+    this.scoreboardBaseline = nextBaseline;
+    this.lastScoreboardRevision = state.scoreboardRevision;
+  }
+
+  private drawScoreboard(state: AppState) {
+    const { ctx, canvas } = this;
+    const now = performance.now();
+    const panelX = canvas.width - 232;
+    const panelY = 8;
+    const panelWidth = 224;
+    const headerHeight = 22;
+    const panelHeight = headerHeight + state.scoreboard.length * SCOREBOARD_LINE_HEIGHT + 10;
+    const innerX = panelX + 12;
+    const clipTop = panelY + headerHeight;
+    const rankX = innerX;
+    const nameX = innerX + 28;
+    const lapX = panelX + 134;
+    const bestX = panelX + panelWidth - 46;
+
+    ctx.fillStyle = 'rgba(0,0,0,0.70)';
+    roundedRect(ctx, panelX, panelY, panelWidth, panelHeight, 8);
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    traceRoundedRect(ctx, panelX, panelY, panelWidth, panelHeight, 8);
+    ctx.stroke();
+
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = '#e94560';
+    ctx.font = 'bold 9px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('STANDINGS', innerX, panelY + 7);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(panelX + 6, clipTop, panelWidth - 12, panelHeight - headerHeight - 4);
+    ctx.clip();
+
+    state.scoreboard.forEach((entry, i) => {
+      const effect = this.scoreboardEffects.get(entry.playerId);
+      let rowTop = clipTop + 4 + i * SCOREBOARD_LINE_HEIGHT;
+      let effectAlpha = 0;
+      let badgeText: string | null = null;
+      let badgeColor = '255,255,255';
+      let badgeTextColor = '#fff';
+
+      if (effect) {
+        const elapsed = now - effect.startTime;
+        const moveProgress = Math.min(elapsed / SCOREBOARD_MOVE_DURATION_MS, 1);
+        const fadeProgress = Math.min(elapsed / SCOREBOARD_FLASH_DURATION_MS, 1);
+        rowTop += effect.fromOffsetY * (1 - easeOutCubic(moveProgress));
+        effectAlpha = 1 - fadeProgress;
+        badgeText = `${effect.direction === 'up' ? '▲' : '▼'}${effect.delta}`;
+        badgeColor = effect.direction === 'up' ? '46,204,113' : '243,156,18';
+        badgeTextColor = effect.direction === 'up' ? '#d5f5e3' : '#fdebd0';
+
+        if (fadeProgress >= 1) {
+          this.scoreboardEffects.delete(entry.playerId);
+        }
+      }
+
+      const isMe = entry.playerId === state.myPlayerId;
+      if (effectAlpha > 0) {
+        ctx.fillStyle = `rgba(${badgeColor}, ${0.08 + 0.14 * effectAlpha})`;
+        roundedRect(ctx, panelX + 8, rowTop - 1, panelWidth - 16, 16, 6);
+      }
+
+      const best = entry.bestLapMs ? formatMs(entry.bestLapMs) : '--:--.---';
+      const lapStr = entry.finished ? 'FIN' : `L${entry.lap}`;
+
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillStyle = isMe ? '#f1c40f' : '#f4f4f4';
+      ctx.fillText(`P${entry.rank}`, rankX, rowTop);
+      ctx.fillStyle = isMe ? '#f7d774' : '#dddddd';
+      ctx.fillText(entry.displayName.slice(0, 8), nameX, rowTop);
+      ctx.fillStyle = 'rgba(255,255,255,0.82)';
+      ctx.fillText(lapStr, lapX, rowTop);
+
+      ctx.textAlign = 'right';
+      ctx.fillText(best, bestX, rowTop);
+
+      if (badgeText && effectAlpha > 0) {
+        ctx.font = 'bold 10px monospace';
+        ctx.textAlign = 'center';
+        const badgeWidth = Math.max(24, ctx.measureText(badgeText).width + 10);
+        const badgeX = panelX + panelWidth - badgeWidth - 12;
+        ctx.fillStyle = `rgba(${badgeColor}, ${0.16 + 0.24 * effectAlpha})`;
+        roundedRect(ctx, badgeX, rowTop - 1, badgeWidth, 14, 7);
+        ctx.fillStyle = badgeTextColor;
+        ctx.fillText(badgeText, badgeX + badgeWidth / 2, rowTop);
+      }
+    });
+
+    ctx.restore();
+    ctx.textBaseline = 'alphabetic';
+  }
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function rRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  const r2 = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r2, y);
+  ctx.lineTo(x + w - r2, y);
+  ctx.arcTo(x + w, y,     x + w, y + r2,     r2);
+  ctx.lineTo(x + w, y + h - r2);
+  ctx.arcTo(x + w, y + h, x + w - r2, y + h, r2);
+  ctx.lineTo(x + r2, y + h);
+  ctx.arcTo(x,     y + h, x,     y + h - r2, r2);
+  ctx.lineTo(x, y + r2);
+  ctx.arcTo(x,     y,     x + r2, y,          r2);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  traceRoundedRect(ctx, x, y, w, h, r);
+  ctx.fill();
+}
+
+function traceRoundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  const r2 = Math.min(r, w / 2, h / 2);
+  ctx.moveTo(x + r2, y);
+  ctx.lineTo(x + w - r2, y);
+  ctx.arcTo(x + w, y,     x + w, y + r2,     r2);
+  ctx.lineTo(x + w, y + h - r2);
+  ctx.arcTo(x + w, y + h, x + w - r2, y + h, r2);
+  ctx.lineTo(x + r2, y + h);
+  ctx.arcTo(x,     y + h, x,     y + h - r2, r2);
+  ctx.lineTo(x, y + r2);
+  ctx.arcTo(x,     y,     x + r2, y,          r2);
+  ctx.closePath();
+}
+
+function fillCircle(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number) {
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function darkenHex(hex: string, amount: number): string {
+  const r = Math.max(0, parseInt(hex.slice(1, 3), 16) - amount);
+  const g = Math.max(0, parseInt(hex.slice(3, 5), 16) - amount);
+  const b = Math.max(0, parseInt(hex.slice(5, 7), 16) - amount);
+  return `rgb(${r},${g},${b})`;
+}
+
+function formatMs(ms: number): string {
+  const minutes = Math.floor(ms / 60000);
+  const seconds = Math.floor((ms % 60000) / 1000);
+  const millis  = ms % 1000;
+  return `${minutes}:${String(seconds).padStart(2,'0')}.${String(millis).padStart(3,'0')}`;
+}
+
+function easeOutCubic(t: number): number {
+  return 1 - Math.pow(1 - t, 3);
+}
