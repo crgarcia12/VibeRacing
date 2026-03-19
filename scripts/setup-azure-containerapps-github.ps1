@@ -137,19 +137,33 @@ if ([string]::IsNullOrWhiteSpace($existingRoleAssignment)) {
 }
 
 $issuer = "https://token.actions.githubusercontent.com"
-$subject = "repo:$Repository:ref:refs/heads/$Branch"
+$subject = "repo:$($Repository):ref:refs/heads/$($Branch)"
 $federatedCredentialName = ("github-actions-" + ($Branch -replace '[^a-zA-Z0-9-]', '-')).ToLowerInvariant()
-$existingFederatedCredential = az identity federated-credential list `
+$existingFederatedCredential = az identity federated-credential show `
+    --name $federatedCredentialName `
     --identity-name $IdentityName `
     --resource-group $ResourceGroup `
-    --query "[?subject=='$subject'].name | [0]" `
-    --output tsv
+    --output json 2>$null | ConvertFrom-Json
 
 if ($LASTEXITCODE -ne 0) {
-    throw "Failed to query federated credentials for '$IdentityName'."
+    $existingFederatedCredential = $null
 }
 
-if ([string]::IsNullOrWhiteSpace($existingFederatedCredential)) {
+if ($existingFederatedCredential -and $existingFederatedCredential.subject -ne $subject) {
+    az identity federated-credential delete `
+        --name $federatedCredentialName `
+        --identity-name $IdentityName `
+        --resource-group $ResourceGroup `
+        | Out-Null
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to delete stale federated credential '$federatedCredentialName'."
+    }
+
+    $existingFederatedCredential = $null
+}
+
+if (-not $existingFederatedCredential) {
     az identity federated-credential create `
         --name $federatedCredentialName `
         --identity-name $IdentityName `

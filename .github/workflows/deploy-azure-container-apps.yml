@@ -87,8 +87,6 @@ jobs:
           set -euo pipefail
 
           az extension add --name containerapp --upgrade --allow-preview true
-          az provider register --namespace Microsoft.App --wait
-          az provider register --namespace Microsoft.ContainerRegistry --wait
 
           az group create \
             --name "$AZURE_RESOURCE_GROUP" \
