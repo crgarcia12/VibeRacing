@@ -6,7 +6,7 @@ export function renderLanding(_state: AppState, net: NetworkClient): HTMLElement
   el.className = 'screen landing';
   el.innerHTML = `
     <div class="card">
-      <h1>≡ƒÅü VibeRacing</h1>
+      <h1>VibeRacing</h1>
       <p class="subtitle">Real-time multiplayer racing</p>
       <div class="form-group">
         <label>Display Name</label>
@@ -38,17 +38,17 @@ export function renderLobby(state: AppState, net: NetworkClient): HTMLElement {
 
   el.innerHTML = `
     <div class="card wide">
-      <h2>≡ƒÜù Lobby</h2>
+      <h2>Lobby</h2>
       <div class="room-code">Room: <strong>${state.roomCode}</strong></div>
       <p class="hint">Share this code with friends!</p>
       <ul id="playerList" class="player-list">
         ${state.lobbyPlayers.map(p => `
           <li class="${p.playerId === state.myPlayerId ? 'me' : ''}">
             ${p.displayName}
-            <span class="badge ${p.isReady ? 'ready' : 'waiting'}">${p.isReady ? 'Γ£ö Ready' : 'Waiting'}</span>
+            <span class="badge ${p.isReady ? 'ready' : 'waiting'}">${p.isReady ? 'Ready' : 'Waiting'}</span>
           </li>`).join('')}
       </ul>
-      ${!meReady ? `<button id="readyBtn" class="btn-primary">Ready Up</button>` : '<p class="ready-msg">Γ£ö Waiting for othersΓÇª</p>'}
+      ${!meReady ? `<button id="readyBtn" class="btn-primary">Ready Up</button>` : '<p class="ready-msg">Waiting for others...</p>'}
     </div>
   `;
 
@@ -70,7 +70,7 @@ export function renderResults(state: AppState, onPlayAgain: () => void): HTMLEle
 
   el.innerHTML = `
     <div class="card wide">
-      <h2>≡ƒÅå Race Results ΓÇö ${results.trackName}</h2>
+      <h2>Race Results - ${results.trackName}</h2>
       <table class="results-table">
         <thead><tr><th>#</th><th>Player</th><th>Total Time</th><th>Best Lap</th></tr></thead>
         <tbody>
