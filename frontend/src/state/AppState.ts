@@ -1,4 +1,4 @@
-import type { GameSnapshot, PlayerSnapshot, ScoreboardEntry, LobbyPlayer, RaceFinished } from './types';
+import type { GameSnapshot, PlayerSnapshot, ScoreboardEntry, LobbyPlayer, RaceFinished, TrackData } from './types';
 
 export type AppScreen = 'landing' | 'lobby' | 'countdown' | 'race' | 'results';
 
@@ -15,6 +15,7 @@ export interface AppState {
   countdownSeconds: number;
 
   // Race
+  track: TrackData | null;
   latestSnapshot: GameSnapshot | null;
   interpolatedPlayers: Map<string, PlayerSnapshot>; // Rendering cache only; lap/rank authority stays in backend snapshots.
   scoreboard: ScoreboardEntry[]; // Displayed standings; rebuilt from authoritative snapshots so lap/finish data stays current.
@@ -32,6 +33,7 @@ export function createInitialState(): AppState {
     roomCode: '',
     lobbyPlayers: [],
     countdownSeconds: 0,
+    track: null,
     latestSnapshot: null,
     interpolatedPlayers: new Map(),
     scoreboard: [],

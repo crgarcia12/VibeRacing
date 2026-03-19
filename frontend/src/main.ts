@@ -3,25 +3,33 @@ import { NetworkClient } from './network/NetworkClient';
 import { Renderer } from './game/Renderer';
 import { InputHandler } from './input/InputHandler';
 import { renderLanding, renderLobby, renderCountdown, renderResults } from './ui/Screens';
-import dustyFields from '../../shared/tracks/dusty-fields.json';
 import type { TrackData } from './state/types';
-
-const track = dustyFields as unknown as TrackData;
 
 const state = createInitialState();
 const appDiv = document.getElementById('app')!;
 
 // Canvas for the race screen
 const canvas = document.createElement('canvas');
-canvas.width = track.cols * track.tileSize;
-canvas.height = track.rows * track.tileSize;
+canvas.width = 1;
+canvas.height = 1;
 canvas.id = 'raceCanvas';
 
 const renderer = new Renderer(canvas);
-renderer.setTrack(track);
+let renderedTrack: TrackData | null = null;
 
 let inputHandler: InputHandler | null = null;
 let rafId: number | null = null;
+
+function applyTrack(track: TrackData) {
+  if (renderedTrack === track) {
+    return;
+  }
+
+  renderedTrack = track;
+  canvas.width = track.cols * track.tileSize;
+  canvas.height = track.rows * track.tileSize;
+  renderer.setTrack(track);
+}
 
 function renderLoop() {
   renderer.render(state);
@@ -33,6 +41,10 @@ function stopRenderLoop() {
 }
 
 function update() {
+  if (state.track) {
+    applyTrack(state.track);
+  }
+
   appDiv.innerHTML = '';
 
   switch (state.screen) {

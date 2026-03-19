@@ -31,15 +31,9 @@
   ],
   "checkpoints": [
     { "index": 0, "x": 432, "y": 96,  "width": 32,  "height": 96, "isFinishLine": true  },
-    { "index": 1, "x": 800, "y": 216, "width": 32,  "height": 48,  "isFinishLine": false },
-    { "index": 2, "x": 800, "y": 312, "width": 32,  "height": 48,  "isFinishLine": false },
-    { "index": 3, "x": 800, "y": 408, "width": 32,  "height": 48,  "isFinishLine": false },
-    { "index": 4, "x": 800, "y": 504, "width": 32,  "height": 48,  "isFinishLine": false },
-    { "index": 5, "x": 480, "y": 608, "width": 192, "height": 32,  "isFinishLine": false },
-    { "index": 6, "x": 128, "y": 504, "width": 32,  "height": 48,  "isFinishLine": false },
-    { "index": 7, "x": 128, "y": 408, "width": 32,  "height": 48,  "isFinishLine": false },
-    { "index": 8, "x": 128, "y": 312, "width": 32,  "height": 48,  "isFinishLine": false },
-    { "index": 9, "x": 128, "y": 216, "width": 32,  "height": 48,  "isFinishLine": false }
+    { "index": 1, "x": 768, "y": 416, "width": 96,  "height": 32,  "isFinishLine": false },
+    { "index": 2, "x": 512, "y": 576, "width": 32,  "height": 96,  "isFinishLine": false },
+    { "index": 3, "x": 96,  "y": 320, "width": 96,  "height": 32,  "isFinishLine": false }
   ],
   "startPositions": [
     { "slot": 0, "x": 230, "y": 160, "angle": 0 },

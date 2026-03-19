@@ -119,6 +119,21 @@ public class RoomManager
         return room;
     }
 
+    public TrackData? GetTrack(string roomCode)
+    {
+        string? trackName;
+
+        lock (_lock)
+        {
+            if (!_rooms.TryGetValue(roomCode, out var room))
+                return null;
+
+            trackName = room.TrackName;
+        }
+
+        return _trackLoader.Load(trackName);
+    }
+
     public void UpdateInput(string roomCode, string playerId, InputState input)
     {
         lock (_lock)

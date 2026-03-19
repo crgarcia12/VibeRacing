@@ -10,15 +10,15 @@ public class CheckpointSystem
 {
     private readonly List<CheckpointData> _checkpoints;
     private readonly int _totalCheckpoints;
-    private readonly double _finishLineGrassTolerance;
-    private readonly double _finishLineTolerance;
+    private readonly double _checkpointGrassTolerance;
+    private readonly double _checkpointLineTolerance;
 
     public CheckpointSystem(TrackData track)
     {
         _checkpoints = track.Checkpoints.OrderBy(c => c.Index).ToList();
         _totalCheckpoints = _checkpoints.Count;
-        _finishLineGrassTolerance = track.TileSize > 0 ? PhysicsEngine.GetPlayableMargin(track) : 0.0;
-        _finishLineTolerance = track.TileSize > 0 ? track.TileSize / 20.0 : 0.0;
+        _checkpointGrassTolerance = track.TileSize > 0 ? PhysicsEngine.GetPlayableMargin(track) : 0.0;
+        _checkpointLineTolerance = track.TileSize > 0 ? track.TileSize / 20.0 : 0.0;
     }
 
     /// <summary>
@@ -51,20 +51,26 @@ public class CheckpointSystem
         return (false, player.CheckpointIndex);
     }
 
+    public int? GetNextCheckpointIndex(PlayerState player)
+    {
+        if (player.Finished || _totalCheckpoints == 0)
+            return null;
+
+        int nextIndex = (player.CheckpointIndex + 1) % _totalCheckpoints;
+        return _checkpoints[nextIndex].Index;
+    }
+
     private (double horizontalTolerance, double verticalTolerance) GetTolerances(CheckpointData checkpoint)
     {
-        if (!checkpoint.IsFinishLine)
-            return (0.0, 0.0);
-
-        // Allow finish-line crossings to register while the car is on the playable shoulder/grass,
+        // Allow checkpoint crossings to register while the car is on the playable shoulder/grass,
         // but only extend the line along its long axis so racers still have to actually cross it.
         if (checkpoint.Height > checkpoint.Width)
-            return (_finishLineTolerance, _finishLineGrassTolerance);
+            return (_checkpointLineTolerance, _checkpointGrassTolerance);
 
         if (checkpoint.Width > checkpoint.Height)
-            return (_finishLineGrassTolerance, _finishLineTolerance);
+            return (_checkpointGrassTolerance, _checkpointLineTolerance);
 
-        return (_finishLineTolerance, _finishLineTolerance);
+        return (_checkpointLineTolerance, _checkpointLineTolerance);
     }
 
     private static bool Intersects(PlayerState player, CheckpointData cp, double horizontalTolerance, double verticalTolerance)

@@ -70,6 +70,12 @@ public class RaceHub : Hub
             p.PlayerId, p.DisplayName, p.IsReady
         });
         await Clients.Caller.SendAsync("LobbyState", new { Players = players, RoomCode = roomCode });
+
+        var track = _rooms.GetTrack(roomCode);
+        if (track != null)
+        {
+            await Clients.Caller.SendAsync("TrackLoaded", track);
+        }
     }
 
     public async Task ReadyUp()

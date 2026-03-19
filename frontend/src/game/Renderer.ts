@@ -1,5 +1,5 @@
 import type { AppState } from '../state/AppState';
-import type { TileData, TrackData } from '../state/types';
+import type { CheckpointData, TileData, TrackData } from '../state/types';
 
 // A distinct color per player slot
 const PLAYER_COLORS = ['#e74c3c','#3498db','#2ecc71','#f39c12','#9b59b6','#1abc9c','#e67e22','#e91e63'];
@@ -52,6 +52,7 @@ export class Renderer {
 
   render(state: AppState) {
     const { ctx, canvas } = this;
+    const me = state.latestSnapshot?.players.find(player => player.playerId === state.myPlayerId);
     if (state.scoreboard.length === 0) {
       this.resetScoreboardEffects();
     } else {
@@ -89,7 +90,7 @@ export class Renderer {
 
     if (this.track) {
       this.drawGroundVariation();
-      this.drawTrack();
+      this.drawTrack(me?.nextCheckpointIndex ?? null);
       this.drawTracksideProps();
     }
 
@@ -100,7 +101,6 @@ export class Renderer {
     });
 
     // HUD progress comes from the latest backend snapshot, not the render cache.
-    const me = state.latestSnapshot?.players.find(player => player.playerId === state.myPlayerId);
     if (me && this.track) {
       this.drawHUD(state, me);
     }
@@ -111,7 +111,7 @@ export class Renderer {
     }
   }
 
-  private drawTrack() {
+  private drawTrack(nextCheckpointIndex: number | null) {
     const { ctx, track } = this;
     if (!track) return;
     const ts = track.tileSize;
@@ -143,6 +143,12 @@ export class Renderer {
 
     // --- Finish line (checkerboard) ---
     track.checkpoints.forEach(cp => {
+      const isNextCheckpoint = nextCheckpointIndex !== null && cp.index === nextCheckpointIndex;
+      if (!cp.isFinishLine) {
+        this.drawCheckpointLine(cp, isNextCheckpoint);
+        return;
+      }
+
       if (cp.isFinishLine) {
         const sq = 8;
         const cols = Math.ceil(cp.width  / sq);
@@ -165,8 +171,51 @@ export class Renderer {
           ctx.fillRect(cp.x, cp.y, 4, cp.height);
           ctx.fillRect(cp.x + cp.width - 4, cp.y, 4, cp.height);
         }
+
+        if (isNextCheckpoint) {
+          this.drawNextCheckpointHighlight(cp);
+        }
       }
     });
+  }
+
+  private drawCheckpointLine(cp: CheckpointData, isNextCheckpoint: boolean) {
+    const { ctx } = this;
+    const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 180);
+
+    ctx.save();
+    ctx.fillStyle = isNextCheckpoint
+      ? `rgba(255, 208, 96, ${0.22 + pulse * 0.16})`
+      : 'rgba(93, 214, 255, 0.12)';
+    ctx.fillRect(cp.x, cp.y, cp.width, cp.height);
+
+    ctx.strokeStyle = isNextCheckpoint
+      ? `rgba(255, 244, 186, ${0.78 + pulse * 0.22})`
+      : 'rgba(191, 242, 255, 0.42)';
+    ctx.lineWidth = isNextCheckpoint ? 3 : 2;
+
+    if (isNextCheckpoint) {
+      ctx.shadowColor = `rgba(255, 208, 96, ${0.44 + pulse * 0.26})`;
+      ctx.shadowBlur = 12 + pulse * 8;
+    }
+
+    ctx.strokeRect(cp.x + 1, cp.y + 1, Math.max(cp.width - 2, 0), Math.max(cp.height - 2, 0));
+    ctx.restore();
+  }
+
+  private drawNextCheckpointHighlight(cp: CheckpointData) {
+    const { ctx } = this;
+    const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 180);
+
+    ctx.save();
+    ctx.fillStyle = `rgba(255, 208, 96, ${0.08 + pulse * 0.08})`;
+    ctx.fillRect(cp.x - 1, cp.y - 1, cp.width + 2, cp.height + 2);
+    ctx.strokeStyle = `rgba(255, 244, 186, ${0.72 + pulse * 0.28})`;
+    ctx.lineWidth = 4;
+    ctx.shadowColor = `rgba(255, 208, 96, ${0.48 + pulse * 0.24})`;
+    ctx.shadowBlur = 16 + pulse * 10;
+    ctx.strokeRect(cp.x - 2, cp.y - 2, cp.width + 4, cp.height + 4);
+    ctx.restore();
   }
 
   private fillRoadSurface(ts: number, clipPath?: () => void) {

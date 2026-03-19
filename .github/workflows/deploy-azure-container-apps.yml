@@ -1,0 +1,278 @@
+name: Deploy Azure Container Apps
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/deploy-azure-container-apps.yml'
+      - '.dockerignore'
+      - 'backend/**'
+      - 'frontend/**'
+      - 'shared/tracks/**'
+      - 'scripts/setup-azure-containerapps-github.ps1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-azure-container-apps-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+      AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      AZURE_CONTAINERAPPS_ENVIRONMENT: ${{ vars.AZURE_CONTAINERAPPS_ENVIRONMENT }}
+      AZURE_CONTAINER_REGISTRY: ${{ vars.AZURE_CONTAINER_REGISTRY }}
+      AZURE_BACKEND_APP_NAME: ${{ vars.AZURE_BACKEND_APP_NAME }}
+      AZURE_FRONTEND_APP_NAME: ${{ vars.AZURE_FRONTEND_APP_NAME }}
+      BACKEND_IMAGE_NAME: dustracing2d-backend
+      FRONTEND_IMAGE_NAME: dustracing2d-frontend
+      BACKEND_CONTAINER_PORT: '8080'
+      FRONTEND_CONTAINER_PORT: '8080'
+      BACKEND_CPU: '0.5'
+      BACKEND_MEMORY: '1.0Gi'
+      FRONTEND_CPU: '0.25'
+      FRONTEND_MEMORY: '0.5Gi'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate repository variables
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          missing=0
+          for name in \
+            AZURE_CLIENT_ID \
+            AZURE_TENANT_ID \
+            AZURE_SUBSCRIPTION_ID \
+            AZURE_LOCATION \
+            AZURE_RESOURCE_GROUP \
+            AZURE_CONTAINERAPPS_ENVIRONMENT \
+            AZURE_CONTAINER_REGISTRY \
+            AZURE_BACKEND_APP_NAME \
+            AZURE_FRONTEND_APP_NAME
+          do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::Missing repository variable $name"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Ensure Azure resources
+        id: azure-resources
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          az extension add --name containerapp --upgrade --allow-preview true
+          az provider register --namespace Microsoft.App --wait
+          az provider register --namespace Microsoft.ContainerRegistry --wait
+
+          az group create \
+            --name "$AZURE_RESOURCE_GROUP" \
+            --location "$AZURE_LOCATION" \
+            --tags app=DustRacing2D managed-by=github-actions \
+            >/dev/null
+
+          if ! az acr show --name "$AZURE_CONTAINER_REGISTRY" --resource-group "$AZURE_RESOURCE_GROUP" >/dev/null 2>&1; then
+            az acr create \
+              --name "$AZURE_CONTAINER_REGISTRY" \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --location "$AZURE_LOCATION" \
+              --sku Basic \
+              --admin-enabled true \
+              >/dev/null
+          else
+            az acr update \
+              --name "$AZURE_CONTAINER_REGISTRY" \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --admin-enabled true \
+              >/dev/null
+          fi
+
+          if ! az containerapp env show --name "$AZURE_CONTAINERAPPS_ENVIRONMENT" --resource-group "$AZURE_RESOURCE_GROUP" >/dev/null 2>&1; then
+            az containerapp env create \
+              --name "$AZURE_CONTAINERAPPS_ENVIRONMENT" \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --location "$AZURE_LOCATION" \
+              >/dev/null
+          fi
+
+          acr_login_server="$(az acr show --name "$AZURE_CONTAINER_REGISTRY" --resource-group "$AZURE_RESOURCE_GROUP" --query loginServer -o tsv)"
+          acr_username="$(az acr credential show --name "$AZURE_CONTAINER_REGISTRY" --resource-group "$AZURE_RESOURCE_GROUP" --query username -o tsv)"
+          acr_password="$(az acr credential show --name "$AZURE_CONTAINER_REGISTRY" --resource-group "$AZURE_RESOURCE_GROUP" --query 'passwords[0].value' -o tsv)"
+
+          echo "::add-mask::$acr_password"
+          echo "acr_login_server=$acr_login_server" >> "$GITHUB_OUTPUT"
+          echo "acr_username=$acr_username" >> "$GITHUB_OUTPUT"
+          echo "acr_password=$acr_password" >> "$GITHUB_OUTPUT"
+
+      - name: Build backend image in ACR
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          az acr build \
+            --registry "$AZURE_CONTAINER_REGISTRY" \
+            --image "$BACKEND_IMAGE_NAME:${GITHUB_SHA}" \
+            --image "$BACKEND_IMAGE_NAME:latest" \
+            --file backend/DustRacing2D.Server/Dockerfile \
+            --platform linux \
+            .
+
+      - name: Deploy backend container app
+        id: deploy-backend
+        shell: bash
+        env:
+          ACR_LOGIN_SERVER: ${{ steps.azure-resources.outputs.acr_login_server }}
+          ACR_USERNAME: ${{ steps.azure-resources.outputs.acr_username }}
+          ACR_PASSWORD: ${{ steps.azure-resources.outputs.acr_password }}
+        run: |
+          set -euo pipefail
+
+          backend_image="${ACR_LOGIN_SERVER}/${BACKEND_IMAGE_NAME}:${GITHUB_SHA}"
+
+          if az containerapp show --name "$AZURE_BACKEND_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" >/dev/null 2>&1; then
+            az containerapp update \
+              --name "$AZURE_BACKEND_APP_NAME" \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --image "$backend_image" \
+              --cpu "$BACKEND_CPU" \
+              --memory "$BACKEND_MEMORY" \
+              --min-replicas 1 \
+              --max-replicas 1 \
+              --set-env-vars TRACKS_DIR=/app/shared/tracks \
+              >/dev/null
+          else
+            az containerapp create \
+              --name "$AZURE_BACKEND_APP_NAME" \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --environment "$AZURE_CONTAINERAPPS_ENVIRONMENT" \
+              --image "$backend_image" \
+              --ingress external \
+              --target-port "$BACKEND_CONTAINER_PORT" \
+              --transport auto \
+              --registry-server "$ACR_LOGIN_SERVER" \
+              --registry-username "$ACR_USERNAME" \
+              --registry-password "$ACR_PASSWORD" \
+              --cpu "$BACKEND_CPU" \
+              --memory "$BACKEND_MEMORY" \
+              --min-replicas 1 \
+              --max-replicas 1 \
+              --env-vars TRACKS_DIR=/app/shared/tracks \
+              >/dev/null
+          fi
+
+          backend_fqdn="$(az containerapp show --name "$AZURE_BACKEND_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" --query properties.configuration.ingress.fqdn -o tsv)"
+          echo "backend_url=https://${backend_fqdn}" >> "$GITHUB_OUTPUT"
+
+      - name: Build frontend image in ACR
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          backend_hub_url="${{ steps.deploy-backend.outputs.backend_url }}/racehub"
+
+          az acr build \
+            --registry "$AZURE_CONTAINER_REGISTRY" \
+            --image "$FRONTEND_IMAGE_NAME:${GITHUB_SHA}" \
+            --image "$FRONTEND_IMAGE_NAME:latest" \
+            --file frontend/Dockerfile \
+            --build-arg "VITE_HUB_URL=${backend_hub_url}" \
+            --platform linux \
+            .
+
+      - name: Deploy frontend container app
+        id: deploy-frontend
+        shell: bash
+        env:
+          ACR_LOGIN_SERVER: ${{ steps.azure-resources.outputs.acr_login_server }}
+          ACR_USERNAME: ${{ steps.azure-resources.outputs.acr_username }}
+          ACR_PASSWORD: ${{ steps.azure-resources.outputs.acr_password }}
+        run: |
+          set -euo pipefail
+
+          frontend_image="${ACR_LOGIN_SERVER}/${FRONTEND_IMAGE_NAME}:${GITHUB_SHA}"
+
+          if az containerapp show --name "$AZURE_FRONTEND_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" >/dev/null 2>&1; then
+            az containerapp update \
+              --name "$AZURE_FRONTEND_APP_NAME" \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --image "$frontend_image" \
+              --cpu "$FRONTEND_CPU" \
+              --memory "$FRONTEND_MEMORY" \
+              --min-replicas 1 \
+              --max-replicas 3 \
+              >/dev/null
+          else
+            az containerapp create \
+              --name "$AZURE_FRONTEND_APP_NAME" \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --environment "$AZURE_CONTAINERAPPS_ENVIRONMENT" \
+              --image "$frontend_image" \
+              --ingress external \
+              --target-port "$FRONTEND_CONTAINER_PORT" \
+              --transport auto \
+              --registry-server "$ACR_LOGIN_SERVER" \
+              --registry-username "$ACR_USERNAME" \
+              --registry-password "$ACR_PASSWORD" \
+              --cpu "$FRONTEND_CPU" \
+              --memory "$FRONTEND_MEMORY" \
+              --min-replicas 1 \
+              --max-replicas 3 \
+              >/dev/null
+          fi
+
+          frontend_fqdn="$(az containerapp show --name "$AZURE_FRONTEND_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" --query properties.configuration.ingress.fqdn -o tsv)"
+          echo "frontend_url=https://${frontend_fqdn}" >> "$GITHUB_OUTPUT"
+
+      - name: Update backend CORS for frontend origin
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          frontend_origin="${{ steps.deploy-frontend.outputs.frontend_url }}"
+
+          az containerapp update \
+            --name "$AZURE_BACKEND_APP_NAME" \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --set-env-vars \
+              TRACKS_DIR=/app/shared/tracks \
+              "CORS_ALLOWED_ORIGINS=${frontend_origin}" \
+            >/dev/null
+
+      - name: Write deployment summary
+        shell: bash
+        run: |
+          {
+            echo "## Azure Container Apps deployment"
+            echo
+            echo "- Backend: ${{ steps.deploy-backend.outputs.backend_url }}"
+            echo "- Frontend: ${{ steps.deploy-frontend.outputs.frontend_url }}"
+            echo "- Resource group: ${AZURE_RESOURCE_GROUP}"
+            echo "- Environment: ${AZURE_CONTAINERAPPS_ENVIRONMENT}"
+            echo
+            echo "> Backend scaling is pinned to one replica because the game server keeps room state in memory."
+          } >> "$GITHUB_STEP_SUMMARY"

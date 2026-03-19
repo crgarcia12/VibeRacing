@@ -7,6 +7,7 @@ import type {
   RaceFinished,
   LobbyPlayer,
   PlayerSnapshot,
+  TrackData,
 } from '../state/types';
 
 const HUB_URL = import.meta.env.VITE_HUB_URL ?? 'http://localhost:5000/racehub';
@@ -74,6 +75,11 @@ export class NetworkClient {
 
     this.connection.on('RaceStarted', () => {
       this.state.screen = 'race';
+      this.onStateChange();
+    });
+
+    this.connection.on('TrackLoaded', (track: TrackData) => {
+      this.state.track = track;
       this.onStateChange();
     });
 

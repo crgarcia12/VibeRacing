@@ -20,6 +20,7 @@ export interface PlayerSnapshot {
   finished: boolean;
   rank: number;
   lapTimeMs: number;
+  nextCheckpointIndex: number | null;
 }
 
 export interface GameSnapshot {

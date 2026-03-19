@@ -113,20 +113,22 @@ public class RaceSession : IAsyncDisposable
     private async Task BroadcastSnapshot()
     {
         List<object> playerSnapshots;
+        long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         lock (_room.Players)
         {
             playerSnapshots = _room.Players.Values.Select(p => (object)new
             {
                 p.PlayerId, p.DisplayName, p.X, p.Y, p.Angle, p.Speed,
                 p.Lap, p.CheckpointIndex, p.BestLapMs, p.Finished, p.Rank,
-                LapTimeMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - p.LapStartMs
+                LapTimeMs = nowMs - p.LapStartMs,
+                NextCheckpointIndex = _checkpoints.GetNextCheckpointIndex(p)
             }).ToList();
         }
 
         await _broadcast(_room.Code, "GameSnapshot", new
         {
             Tick = _tick,
-            Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            Timestamp = nowMs,
             Players = playerSnapshots
         });
     }
