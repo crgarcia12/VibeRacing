@@ -271,7 +271,7 @@ deleteColumn()        // Delete active column, shift left
 | sandAreaCurve | sandAreaCurve.png | 128 | 128 |
 | sandAreaBig | sandAreaBig.png | 512 | 64 |
 | pit | pit.png | 256 | 54 |
-| dustRacing2DBanner | dustRacing2DBanner.png | 256 | 32 |
+| vibeRacingBanner | vibeRacingBanner.png | 256 | 32 |
 
 ### **4.2 Object Class Structure**
 
@@ -876,7 +876,7 @@ Config::Editor::CLEAR_ICON_PATH         // Clear/empty tile icon
 ### **11.7 Editor Version**
 ```cpp
 Config::Editor::EDITOR_VERSION          // Stored in track file root/@version
-Config::Editor::EDITOR_NAME             // "Dust Racing 2D Editor"
+Config::Editor::EDITOR_NAME             // "VibeRacing Editor"
 ```
 
 ---
@@ -1010,4 +1010,4 @@ Allows editing after track creation:
 
 ---
 
-This comprehensive specification documents the DustRacing2D track editor with complete architecture, workflows, file format, and all constants.
+This comprehensive specification documents the VibeRacing track editor with complete architecture, workflows, file format, and all constants.

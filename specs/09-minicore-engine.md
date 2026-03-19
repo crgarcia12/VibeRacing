@@ -1,4 +1,4 @@
-# DustRacing2D - MiniCore Engine Specification
+# VibeRacing - MiniCore Engine Specification
 
 ## 1. DIRECTORY STRUCTURE
 

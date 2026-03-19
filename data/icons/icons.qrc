@@ -1,6 +1,6 @@
 <RCC>
     <qresource prefix="/">
-        <file>dustrac-editor.png</file>
-        <file>dustrac-game.png</file>
+        <file>viberacing-editor.png</file>
+        <file>viberacing-game.png</file>
     </qresource>
 </RCC>

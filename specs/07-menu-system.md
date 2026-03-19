@@ -1,7 +1,7 @@
 # **DUST RACING 2D MENU SYSTEM & FRAMEWORKS - REVERSE ENGINEERING SPECIFICATION**
 
 ## **OVERVIEW**
-This document details the menu architecture, screen layouts, UI components, and framework implementation for Dust Racing 2D's menu system, including the **MTFH (Menu Template Framework Header)** and **STFH** (Sound/Audio) frameworks.
+This document details the menu architecture, screen layouts, UI components, and framework implementation for VibeRacing's menu system, including the **MTFH (Menu Template Framework Header)** and **STFH** (Sound/Audio) frameworks.
 
 ---
 

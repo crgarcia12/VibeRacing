@@ -48,8 +48,8 @@ frontend/dist/
 frontend/dist-ssr/
 frontend/*.local
 frontend/.vite/
-dustrac.pro.user
-dustrac.pro.user.2.1pre1
+viberacing.pro.user
+viberacing.pro.user.2.1pre1
 engine.txt
 header.txt
 src/contrib/
@@ -60,8 +60,8 @@ src/game/Makefile.Debug
 src/game/Makefile.Release
 src/game/MiniCore/Core/genincludeheaders.sh
 *.cbp
-dustrac-editor
-dustrac-game
+viberacing-editor
+viberacing-game
 test/
 unittests/
 CMakeLists.txt.user
@@ -83,10 +83,10 @@ src/game/renderer.cpp.autosave
 CPackConfig.cmake
 CPackSourceConfig.cmake
 data/translations/
-dustrac-1.4.6.zip
+viberacing-1.4.6.zip
 release/
-src/game/dustrac-game_fi.qm
-src/game/dustrac-game_it.qm
+src/game/viberacing-game_fi.qm
+src/game/viberacing-game_it.qm
 src/game/trackobjectfactory.cpp.orig
 *_plugin_import*
 *.Debug

@@ -34,8 +34,8 @@ jobs:
       AZURE_CONTAINER_REGISTRY: ${{ vars.AZURE_CONTAINER_REGISTRY }}
       AZURE_BACKEND_APP_NAME: ${{ vars.AZURE_BACKEND_APP_NAME }}
       AZURE_FRONTEND_APP_NAME: ${{ vars.AZURE_FRONTEND_APP_NAME }}
-      BACKEND_IMAGE_NAME: dustracing2d-backend
-      FRONTEND_IMAGE_NAME: dustracing2d-frontend
+      BACKEND_IMAGE_NAME: viberacing-backend
+      FRONTEND_IMAGE_NAME: viberacing-frontend
       BACKEND_CONTAINER_PORT: '8080'
       FRONTEND_CONTAINER_PORT: '8080'
       BACKEND_CPU: '0.5'
@@ -91,7 +91,7 @@ jobs:
           az group create \
             --name "$AZURE_RESOURCE_GROUP" \
             --location "$AZURE_LOCATION" \
-            --tags app=DustRacing2D managed-by=github-actions \
+            --tags app=VibeRacing managed-by=github-actions \
             >/dev/null
 
           if ! az acr show --name "$AZURE_CONTAINER_REGISTRY" --resource-group "$AZURE_RESOURCE_GROUP" >/dev/null 2>&1; then
@@ -136,7 +136,7 @@ jobs:
             --registry "$AZURE_CONTAINER_REGISTRY" \
             --image "$BACKEND_IMAGE_NAME:${GITHUB_SHA}" \
             --image "$BACKEND_IMAGE_NAME:latest" \
-            --file backend/DustRacing2D.Server/Dockerfile \
+            --file backend/VibeRacing.Server/Dockerfile \
             --platform linux \
             .
 

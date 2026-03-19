@@ -1,4 +1,4 @@
-# DustRacing2D — Reverse Engineering Specifications
+# VibeRacing — Reverse Engineering Specifications
 
 Comprehensive technical specifications extracted from the C++ source code.
 Target: enable re-implementation in a modern language/framework.

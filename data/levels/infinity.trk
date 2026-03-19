@@ -276,8 +276,8 @@
  <o o="0" r="grandstand" c="free" x="3775" y="1236"/>
  <o o="45" r="grandstand" c="free" x="2673" y="633"/>
  <o o="225" r="grandstand" c="free" x="2964" y="1428"/>
- <o o="0" r="dustRacing2DBanner" c="free" x="1018" y="423"/>
- <o o="0" r="dustRacing2DBanner" c="free" x="2056" y="517"/>
+ <o o="0" r="vibeRacingBanner" c="free" x="1018" y="423"/>
+ <o o="0" r="vibeRacingBanner" c="free" x="2056" y="517"/>
  <o o="0" r="tire" c="free" x="1099" y="510"/>
  <o o="0" r="tire" c="free" x="1054" y="487"/>
  <o o="0" r="tire" c="free" x="1024" y="509"/>
@@ -285,7 +285,7 @@
  <o o="0" r="tire" c="free" x="879" y="474"/>
  <o o="0" r="tire" c="free" x="821" y="509"/>
  <o o="0" r="tire" c="free" x="884" y="513"/>
- <o o="0" r="dustRacing2DBanner" c="free" x="2322" y="517"/>
+ <o o="0" r="vibeRacingBanner" c="free" x="2322" y="517"/>
  <o o="0" r="tire" c="free" x="2577" y="599"/>
  <o o="0" r="tire" c="free" x="2578" y="576"/>
  <o o="0" r="tire" c="free" x="2560" y="549"/>

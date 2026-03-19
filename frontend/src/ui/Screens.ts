@@ -6,7 +6,7 @@ export function renderLanding(_state: AppState, net: NetworkClient): HTMLElement
   el.className = 'screen landing';
   el.innerHTML = `
     <div class="card">
-      <h1>≡ƒÅü Dust Racing 2D</h1>
+      <h1>≡ƒÅü VibeRacing</h1>
       <p class="subtitle">Real-time multiplayer racing</p>
       <div class="form-group">
         <label>Display Name</label>

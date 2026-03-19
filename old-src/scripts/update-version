@@ -18,7 +18,7 @@ sed -i "s/^set(VERSION_MAJOR.*/set(VERSION_MAJOR ${VERSION_MAJOR})/" ${FILE} ||�
 sed -i "s/^set(VERSION_MINOR.*/set(VERSION_MINOR ${VERSION_MINOR})/" ${FILE} || exit 1
 sed -i "s/^set(VERSION_PATCH.*/set(VERSION_PATCH ${VERSION_PATCH})/" ${FILE} || exit 1
 
-FILE=packaging/windows/dustrac.nsi
+FILE=packaging/windows/viberacing.nsi
 echo "Updating ${FILE} .."
 sed -i "s/^!define VERSIONMAJOR.*/!define VERSIONMAJOR ${VERSION_MAJOR}/" ${FILE} || exit 1
 sed -i "s/^!define VERSIONMINOR.*/!define VERSIONMINOR ${VERSION_MINOR}/" ${FILE} || exit 1

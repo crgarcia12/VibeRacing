@@ -660,6 +660,6 @@ enum class TileType {
 
 **END OF SPECIFICATION DOCUMENT**
 
-This comprehensive reverse-engineering specification covers all aspects of the DustRacing2D game physics system, includi
+This comprehensive reverse-engineering specification covers all aspects of the VibeRacing game physics system, includi
 ing exact numeric constants, physics formulas, state machines, and behavioral mechanics. All values are extracted directl
 ly from the source code with full traceability.

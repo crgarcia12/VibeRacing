@@ -997,7 +997,7 @@
  <o x="2456" y="1546" o="0" r="wallLong" c="free"/>
  <o x="2922" y="1545" o="0" r="wallLong" c="free"/>
  <o x="1668" y="1478" o="0" r="pit" c="free"/>
- <o x="1670" y="1537" o="180" r="dustRacing2DBanner" c="free"/>
+ <o x="1670" y="1537" o="180" r="vibeRacingBanner" c="free"/>
  <o x="3490" y="4127" o="343" r="tree" c="free"/>
  <o x="3615" y="4125" o="117" r="tree" c="free"/>
  <o x="3716" y="4124" o="310" r="tree" c="free"/>

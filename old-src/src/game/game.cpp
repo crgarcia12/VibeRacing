@@ -1,17 +1,17 @@
-// This file is part of Dust Racing 2D.
+// This file is part of VibeRacing.
 // Copyright (C) 2015 Jussi Lind <jussi.lind@iki.fi>
 //
-// Dust Racing 2D is free software: you can redistribute it and/or modify
+// VibeRacing is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// Dust Racing 2D is distributed in the hope that it will be useful,
+// VibeRacing is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Dust Racing 2D. If not, see <http://www.gnu.org/licenses/>.
+// along with VibeRacing. If not, see <http://www.gnu.org/licenses/>.
 
 #include "../common/config.hpp"
 #include "../common/userexception.hpp"
@@ -138,7 +138,7 @@ static void initTranslations(QTranslator & appTranslator, QGuiApplication & app,
         lang = QLocale::system().name();
     }
 
-    if (appTranslator.load(QString(DATA_PATH) + "/translations/dustrac-game_" + lang))
+    if (appTranslator.load(QString(DATA_PATH) + "/translations/viberacing-game_" + lang))
     {
         app.installTranslator(&appTranslator);
         L().info() << "Loaded translations for " << lang.toStdString();
@@ -156,7 +156,7 @@ void Game::addTrackSearchPaths()
 
 #ifdef __unix__
     // See: https://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html,
-    //      https://github.com/juzzlin/DustRacing2D/issues/49
+    //      https://github.com/juzzlin/VibeRacing/issues/49
     m_trackLoader->addTrackSearchPath(Config::General::Unix::getXdgTrackSearchPath());
 #endif
 }

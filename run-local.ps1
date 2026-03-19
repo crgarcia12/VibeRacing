@@ -5,7 +5,7 @@ $root = $PSScriptRoot
 
 Write-Host "Starting backend..." -ForegroundColor Cyan
 $backend = Start-Process -FilePath "dotnet" `
-    -ArgumentList "run", "--project", "DustRacing2D.Server" `
+    -ArgumentList "run", "--project", "VibeRacing.Server" `
     -WorkingDirectory "$root\backend" `
     -PassThru -NoNewWindow
 

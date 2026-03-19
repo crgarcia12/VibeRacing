@@ -514,7 +514,7 @@
  <o r="wallLong" o="90" x="4296" y="3219" c="free"/>
  <o r="wallLong" o="90" x="4297" y="3480" c="free"/>
  <o r="wallLong" o="90" x="4297" y="3740" c="free"/>
- <o r="dustRacing2DBanner" o="90" x="4666" y="2645" c="free"/>
+ <o r="vibeRacingBanner" o="90" x="4666" y="2645" c="free"/>
  <o r="brake" o="225" x="3017" y="5230" c="free"/>
  <o r="brake" o="225" x="3248" y="5403" c="free"/>
  <o r="left" o="45" x="3316" y="5330" c="free"/>
@@ -900,8 +900,8 @@
  <o r="rock" o="0" x="4153" y="117" c="free"/>
  <o r="rock" o="0" x="4415" y="253" c="free"/>
  <o r="rock" o="0" x="3217" y="125" c="free"/>
- <o r="dustRacing2DBanner" o="-45" x="971" y="1865" c="free"/>
- <o r="dustRacing2DBanner" o="135" x="4110" y="4582" c="free"/>
+ <o r="vibeRacingBanner" o="-45" x="971" y="1865" c="free"/>
+ <o r="vibeRacingBanner" o="135" x="4110" y="4582" c="free"/>
  <o r="rock" o="0" x="4635" y="4042" c="free"/>
  <o r="rock" o="0" x="4602" y="4154" c="free"/>
  <o r="rock" o="0" x="4515" y="4238" c="free"/>
@@ -1017,8 +1017,8 @@
  <o r="wallLong" o="-45" x="2905" y="5342" c="free"/>
  <o r="grandstand" o="0" x="2477" y="5396" c="free"/>
  <o r="grandstand" o="0" x="2618" y="5395" c="free"/>
- <o r="dustRacing2DBanner" o="0" x="2552" y="5490" c="free"/>
- <o r="dustRacing2DBanner" o="180" x="2552" y="905" c="free"/>
+ <o r="vibeRacingBanner" o="0" x="2552" y="5490" c="free"/>
+ <o r="vibeRacingBanner" o="180" x="2552" y="905" c="free"/>
  <o r="grandstand" o="180" x="2478" y="1011" c="free"/>
  <o r="grandstand" o="180" x="2627" y="1011" c="free"/>
  <o r="wallLong" o="135" x="579" y="2271" c="free"/>

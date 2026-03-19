@@ -1,4 +1,4 @@
-# DustRacing2D - Effects & Audio Specification
+# VibeRacing - Effects & Audio Specification
 
 ## 1. PARTICLE EFFECTS SYSTEM
 

@@ -3,12 +3,12 @@ param(
     [string]$Repository,
     [string]$Branch = "main",
     [string]$Location = "eastus",
-    [string]$ResourceGroup = "dustracing2d-aca-rg",
-    [string]$ContainerAppsEnvironment = "dustracing2d-env",
+    [string]$ResourceGroup = "viberacing-aca-rg",
+    [string]$ContainerAppsEnvironment = "viberacing-env",
     [string]$ContainerRegistry,
-    [string]$BackendAppName = "dustracing2d-backend",
-    [string]$FrontendAppName = "dustracing2d-frontend",
-    [string]$IdentityName = "dustracing2d-gha"
+    [string]$BackendAppName = "viberacing-backend",
+    [string]$FrontendAppName = "viberacing-frontend",
+    [string]$IdentityName = "viberacing-gha"
 )
 
 $ErrorActionPreference = "Stop"
@@ -45,7 +45,7 @@ function Get-OriginDefaultBranch() {
 function Get-DefaultAcrName([string]$RepoName) {
     $candidate = (($RepoName -replace '[^a-zA-Z0-9]', '') + "acr").ToLowerInvariant()
     if ($candidate.Length -lt 5) {
-        $candidate = ($candidate + "dust").Substring(0, 5)
+        $candidate = ($candidate + "vibe").Substring(0, 5)
     }
 
     if ($candidate.Length -gt 50) {
@@ -93,7 +93,7 @@ if ($LASTEXITCODE -ne 0) {
     throw "Azure CLI is not authenticated. Run 'az login' first."
 }
 
-az group create --name $ResourceGroup --location $Location --tags app=DustRacing2D managed-by=github-actions | Out-Null
+az group create --name $ResourceGroup --location $Location --tags app=VibeRacing managed-by=github-actions | Out-Null
 if ($LASTEXITCODE -ne 0) {
     throw "Failed to create or update resource group '$ResourceGroup'."
 }

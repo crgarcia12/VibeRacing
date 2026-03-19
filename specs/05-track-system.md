@@ -1,7 +1,7 @@
 # **DUST RACING 2D - COMPREHENSIVE TECHNICAL SPECIFICATION**
 
 ## **Document Overview**
-This specification documents the core AI, Route, Input Handling, and Event Management systems of the Dust Racing 2D C++ game engine. All constants, thresholds, angles, distances, and control parameters used in AI decisions are enumerated below.
+This specification documents the core AI, Route, Input Handling, and Event Management systems of the VibeRacing C++ game engine. All constants, thresholds, angles, distances, and control parameters used in AI decisions are enumerated below.
 
 ---
 

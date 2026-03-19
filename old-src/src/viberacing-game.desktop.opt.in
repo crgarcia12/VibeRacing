@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=VibeRacing
+GenericName=Top-down 2D racing game
+GenericName[de]=2D-Rennspiel in Vogelperspektive
+Comment=2D racing game
+Comment[de]=2D-Rennspiel
+Exec=/opt/viberacing/viberacing-game
+Icon=viberacing-game
+Type=Application
+Categories=Game;SportsGame;
+StartupNotify=true

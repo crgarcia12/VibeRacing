@@ -284,8 +284,8 @@
  <o o="90" r="grandstand" c="free" x="2909" y="2231"/>
  <o o="90" r="grandstand" c="free" x="2639" y="1600"/>
  <o o="90" r="grandstand" c="free" x="2648" y="996"/>
- <o o="-90" r="dustRacing2DBanner" c="free" x="747" y="1946"/>
- <o o="-90" r="dustRacing2DBanner" c="free" x="746" y="2335"/>
+ <o o="-90" r="vibeRacingBanner" c="free" x="747" y="1946"/>
+ <o o="-90" r="vibeRacingBanner" c="free" x="746" y="2335"/>
  <o o="270" r="grandstand" c="free" x="699" y="2913"/>
  <o o="0" r="tire" c="free" x="826" y="1840"/>
  <o o="0" r="tire" c="free" x="794" y="1829"/>

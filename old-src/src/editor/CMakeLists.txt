@@ -1,5 +1,5 @@
 # Translation files in src/editor/translations (without .ts)
-set(TS dustrac-editor_fi dustrac-editor_it dustrac-editor_cs dustrac-editor_fr dustrac-editor_de dustrac-editor_nl dustrac-editor_tr)
+set(TS viberacing-editor_fi viberacing-editor_it viberacing-editor_cs viberacing-editor_fr viberacing-editor_de viberacing-editor_nl viberacing-editor_tr)
 set(TS_FILES)
 set(QM_FILES)
 foreach(TS_FILE ${TS})
@@ -69,13 +69,13 @@ endif()
 if(ReleaseBuild AND UNIX)
     set(DesktopFileSourcePath)
     if(USC)
-        set(DesktopFileSourcePath ${CMAKE_SOURCE_DIR}/src/dustrac-editor.desktop.opt.in)
+        set(DesktopFileSourcePath ${CMAKE_SOURCE_DIR}/src/viberacing-editor.desktop.opt.in)
     else()
-        set(DesktopFileSourcePath ${CMAKE_SOURCE_DIR}/src/dustrac-editor.desktop.in)
+        set(DesktopFileSourcePath ${CMAKE_SOURCE_DIR}/src/viberacing-editor.desktop.in)
     endif()
     add_custom_target(desktop-file-editor ALL
         COMMAND cmake -E copy ${DesktopFileSourcePath}
-            ${CMAKE_BINARY_DIR}/dustrac-editor.desktop
+            ${CMAKE_BINARY_DIR}/viberacing-editor.desktop
     DEPENDS ${EDITOR_BINARY_NAME})
 endif()
 

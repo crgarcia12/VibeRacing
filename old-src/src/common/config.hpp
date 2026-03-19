@@ -1,17 +1,17 @@
-// This file is part of Dust Racing 2D.
+// This file is part of VibeRacing.
 // Copyright (C) 2015 Jussi Lind <jussi.lind@iki.fi>
 //
-// Dust Racing 2D is free software: you can redistribute it and/or modify
+// VibeRacing is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// Dust Racing 2D is distributed in the hope that it will be useful,
+// VibeRacing is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Dust Racing 2D. If not, see <http://www.gnu.org/licenses/>.
+// along with VibeRacing. If not, see <http://www.gnu.org/licenses/>.
 
 #include <QDir>
 #include <QProcessEnvironment>
@@ -26,18 +26,18 @@ static constexpr auto dataPath = DATA_PATH;
 static constexpr auto COPYRIGHT = "Copyright (c) 2011-2019 Jussi Lind";
 
 //! Organization name given to Qt. Affects QSettings and SQLite database file locations.
-static constexpr auto QT_ORGANIZATION_NAME = "DustRacing2D";
+static constexpr auto QT_ORGANIZATION_NAME = "VibeRacing";
 
 //! Path used to search "3rd party" race tracks under the home dir: ~/TRACK_SEARCH_PATH/
-static constexpr auto TRACK_SEARCH_PATH = "DustRacingTracks";
+static constexpr auto TRACK_SEARCH_PATH = "VibeRacingTracks";
 
-static constexpr auto WEB_SITE_URL = "http://juzzlin.github.io/DustRacing2D";
+static constexpr auto WEB_SITE_URL = "http://juzzlin.github.io/VibeRacing";
 
 namespace Unix {
 //! Path used to search "3rd party" race tracks under `$XDG_DATA_HOME/TRACK_SEARCH_PATH_XDG` or
 //! $HOME/.local/share/TRACK_SEARCH_PATH_XDG` if `$XDG_DATA_HOME` is not defined.
 //! TODO: Make this use QStandardPaths like in database.cpp !
-static constexpr auto TRACK_SEARCH_PATH_XDG = "DustRacing2D/tracks";
+static constexpr auto TRACK_SEARCH_PATH_XDG = "VibeRacing/tracks";
 inline QString getXdgTrackSearchPath()
 {
     const auto env = QProcessEnvironment::systemEnvironment();
@@ -49,7 +49,7 @@ inline QString getXdgTrackSearchPath()
 } // namespace General
 
 namespace Editor {
-static constexpr auto EDITOR_NAME = "Dust Racing 2D Track Editor";
+static constexpr auto EDITOR_NAME = "VibeRacing Track Editor";
 
 static constexpr auto EDITOR_VERSION = VERSION;
 
@@ -65,7 +65,7 @@ static constexpr auto CLEAR_ICON_PATH = ":/clear.png";
 } // namespace Editor
 
 namespace Game {
-static constexpr auto GAME_NAME = "Dust Racing 2D";
+static constexpr auto GAME_NAME = "VibeRacing";
 
 static constexpr auto GAME_VERSION = VERSION;
 

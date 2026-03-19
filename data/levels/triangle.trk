@@ -385,8 +385,8 @@
  <o r="grandstand" o="-90" x="2765" y="1729" c="free"/>
  <o r="grandstand" o="-90" x="2765" y="1985" c="free"/>
  <o r="grandstand" o="-90" x="2765" y="1601" c="free"/>
- <o r="dustRacing2DBanner" o="-45" x="623" y="2542" c="free"/>
- <o r="dustRacing2DBanner" o="-45" x="808" y="2356" c="free"/>
+ <o r="vibeRacingBanner" o="-45" x="623" y="2542" c="free"/>
+ <o r="vibeRacingBanner" o="-45" x="808" y="2356" c="free"/>
  <o r="bushArea" o="147" x="252" y="3354" c="free"/>
  <o r="bushArea" o="278" x="238" y="3277" c="free"/>
  <o r="bushArea" o="73" x="310" y="3324" c="free"/>

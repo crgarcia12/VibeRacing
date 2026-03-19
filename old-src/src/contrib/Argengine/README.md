@@ -360,6 +360,6 @@ MIT
 
 # Projects currently using Argengine
 
-* https://github.com/juzzlin/DustRacing2D
+* https://github.com/juzzlin/VibeRacing
 
 * https://github.com/juzzlin/Heimer

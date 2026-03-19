@@ -1,17 +1,17 @@
-// This file is part of Dust Racing 2D.
+// This file is part of VibeRacing.
 // Copyright (C) 2017 Jussi Lind <jussi.lind@iki.fi>
 //
-// Dust Racing 2D is free software: you can redistribute it and/or modify
+// VibeRacing is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// Dust Racing 2D is distributed in the hope that it will be useful,
+// VibeRacing is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Dust Racing 2D. If not, see <http://www.gnu.org/licenses/>.
+// along with VibeRacing. If not, see <http://www.gnu.org/licenses/>.
 
 #include "application.hpp"
 #include "argengine.hpp"
@@ -32,7 +32,7 @@ static void initTranslations(QTranslator & appTranslator, QGuiApplication & app,
         lang = QLocale::system().name();
     }
 
-    if (appTranslator.load(QString(DATA_PATH) + "/translations/dustrac-editor_" + lang))
+    if (appTranslator.load(QString(DATA_PATH) + "/translations/viberacing-editor_" + lang))
     {
         app.installTranslator(&appTranslator);
         std::cout << "Loaded translations for " << lang.toStdString() << std::endl;
@@ -55,7 +55,7 @@ void Application::parseArgs(int argc, char ** argv)
       },
       false, "Force language: fi, fr, it, cs, nl, tr.");
 
-    ae.setHelpText(std::string("Dust Racing 2D version ") + VERSION + "\n" + //
+    ae.setHelpText(std::string("VibeRacing version ") + VERSION + "\n" + //
                    Config::General::COPYRIGHT + "\n\nUsage: " + std::string(argv[0]) + " [OPTIONS] [TRACK_FILE]");
 
     ae.setPositionalArgumentCallback([=](juzzlin::Argengine::ArgumentVector args) {

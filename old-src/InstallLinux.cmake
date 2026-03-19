@@ -2,7 +2,7 @@
 function(resolve_install_paths)
 
     # Set default install paths for release builds.
-    set(DEFAULT_DATA_PATH_BASE share/games/DustRacing2D)
+    set(DEFAULT_DATA_PATH_BASE share/games/VibeRacing)
     if(NOT DATA_PATH)
         set(DATA_PATH ${CMAKE_INSTALL_PREFIX}/${DEFAULT_DATA_PATH_BASE}/data)
     endif()
@@ -19,15 +19,15 @@ function(resolve_install_paths)
 
         set(QT_VER_STR "qt5")
 
-        set(CPACK_PACKAGE_FILE_NAME "dustracing2d-${VERSION}-linux-${CMAKE_HOST_SYSTEM_PROCESSOR}-${QT_VER_STR}")
+        set(CPACK_PACKAGE_FILE_NAME "viberacing-${VERSION}-linux-${CMAKE_HOST_SYSTEM_PROCESSOR}-${QT_VER_STR}")
         set(CPACK_RESOURCE_FILE_LICENSE ${CMAKE_SOURCE_DIR}/COPYING)
         set(CPACK_RESOURCE_FILE_README ${CMAKE_SOURCE_DIR}/README.md)
 
-        set(CPACK_DEBIAN_PACKAGE_NAME "dustracing2d")
+        set(CPACK_DEBIAN_PACKAGE_NAME "viberacing")
         set(CPACK_DEBIAN_PACKAGE_VERSION ${VERSION})
         set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
         set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Jussi Lind <jussi.lind@iki.fi>")
-        set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "Dust Racing 2D is a traditional top-down car racing game including a level editor. ")
+        set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "VibeRacing is a traditional top-down car racing game including a level editor. ")
         set(CPACK_DEBIAN_PACKAGE_SECTION "Games")
         set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
 
@@ -91,14 +91,14 @@ function(setup_install_targets BIN_PATH DATA_PATH DOC_PATH)
     install(DIRECTORY ${CMAKE_BINARY_DIR}/data/translations DESTINATION ${DATA_PATH} FILES_MATCHING PATTERN "*.qm")
 
     # Install .desktop files
-    install(FILES ${CMAKE_BINARY_DIR}/dustrac-game.desktop DESTINATION share/applications)
-    install(FILES ${CMAKE_BINARY_DIR}/dustrac-editor.desktop DESTINATION share/applications)
+    install(FILES ${CMAKE_BINARY_DIR}/viberacing-game.desktop DESTINATION share/applications)
+    install(FILES ${CMAKE_BINARY_DIR}/viberacing-editor.desktop DESTINATION share/applications)
 
     # Install app store meta data
-    install(FILES src/dustrac.appdata.xml DESTINATION share/metainfo)
+    install(FILES src/viberacing.appdata.xml DESTINATION share/metainfo)
 
     # Install icons
-    install(FILES data/icons/dustrac-game.png DESTINATION share/icons/hicolor/64x64/apps)
-    install(FILES data/icons/dustrac-editor.png DESTINATION share/icons/hicolor/64x64/apps)
+    install(FILES data/icons/viberacing-game.png DESTINATION share/icons/hicolor/64x64/apps)
+    install(FILES data/icons/viberacing-editor.png DESTINATION share/icons/hicolor/64x64/apps)
 
 endfunction()

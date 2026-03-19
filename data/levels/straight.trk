@@ -374,17 +374,17 @@
  <o x="10111" y="833" o="90" r="grandstand" c="free"/>
  <o x="10026" y="466" o="45" r="grandstand" c="free"/>
  <o x="10023" y="1065" o="135" r="grandstand" c="free"/>
- <o x="1392" y="519" o="0" r="dustRacing2DBanner" c="free"/>
- <o x="1131" y="519" o="0" r="dustRacing2DBanner" c="free"/>
- <o x="869" y="519" o="0" r="dustRacing2DBanner" c="free"/>
- <o x="5747" y="520" o="0" r="dustRacing2DBanner" c="free"/>
- <o x="3189" y="519" o="0" r="dustRacing2DBanner" c="free"/>
- <o x="3196" y="1018" o="180" r="dustRacing2DBanner" c="free"/>
- <o x="4468" y="519" o="0" r="dustRacing2DBanner" c="free"/>
- <o x="7031" y="518" o="0" r="dustRacing2DBanner" c="free"/>
- <o x="7031" y="1016" o="180" r="dustRacing2DBanner" c="free"/>
- <o x="8563" y="518" o="0" r="dustRacing2DBanner" c="free"/>
- <o x="8558" y="1018" o="180" r="dustRacing2DBanner" c="free"/>
+ <o x="1392" y="519" o="0" r="vibeRacingBanner" c="free"/>
+ <o x="1131" y="519" o="0" r="vibeRacingBanner" c="free"/>
+ <o x="869" y="519" o="0" r="vibeRacingBanner" c="free"/>
+ <o x="5747" y="520" o="0" r="vibeRacingBanner" c="free"/>
+ <o x="3189" y="519" o="0" r="vibeRacingBanner" c="free"/>
+ <o x="3196" y="1018" o="180" r="vibeRacingBanner" c="free"/>
+ <o x="4468" y="519" o="0" r="vibeRacingBanner" c="free"/>
+ <o x="7031" y="518" o="0" r="vibeRacingBanner" c="free"/>
+ <o x="7031" y="1016" o="180" r="vibeRacingBanner" c="free"/>
+ <o x="8563" y="518" o="0" r="vibeRacingBanner" c="free"/>
+ <o x="8558" y="1018" o="180" r="vibeRacingBanner" c="free"/>
  <o x="1651" y="575" o="180" r="pit" c="free"/>
  <o x="8217" y="499" o="90" r="right" c="free"/>
  <o x="9668" y="558" o="45" r="right" c="free"/>
@@ -407,7 +407,7 @@
  <o x="4587" y="1032" o="235" r="bushArea" c="free"/>
  <o x="4610" y="1162" o="235" r="bushArea" c="free"/>
  <o x="5130" y="898" o="90" r="wallLong" c="free"/>
- <o x="4929" y="927" o="45" r="dustRacing2DBanner" c="free"/>
+ <o x="4929" y="927" o="45" r="vibeRacingBanner" c="free"/>
  <o x="5363" y="1151" o="90" r="wallLong" c="free"/>
  <o x="5443" y="1086" o="180" r="grandstand" c="free"/>
  <o x="5574" y="1085" o="180" r="grandstand" c="free"/>

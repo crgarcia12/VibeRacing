@@ -883,13 +883,13 @@
  <o x="4969" y="2976" o="225" r="grandstand" c="free"/>
  <o x="8631" y="3389" o="90" r="grandstand" c="free"/>
  <o x="8631" y="3517" o="90" r="grandstand" c="free"/>
- <o x="1278" y="240" o="0" r="dustRacing2DBanner" c="free"/>
- <o x="1573" y="357" o="45" r="dustRacing2DBanner" c="free"/>
- <o x="980" y="357" o="-45" r="dustRacing2DBanner" c="free"/>
- <o x="5904" y="3843" o="0" r="dustRacing2DBanner" c="free"/>
- <o x="4862" y="3843" o="0" r="dustRacing2DBanner" c="free"/>
- <o x="5428" y="2808" o="0" r="dustRacing2DBanner" c="free"/>
- <o x="4859" y="2549" o="0" r="dustRacing2DBanner" c="free"/>
+ <o x="1278" y="240" o="0" r="vibeRacingBanner" c="free"/>
+ <o x="1573" y="357" o="45" r="vibeRacingBanner" c="free"/>
+ <o x="980" y="357" o="-45" r="vibeRacingBanner" c="free"/>
+ <o x="5904" y="3843" o="0" r="vibeRacingBanner" c="free"/>
+ <o x="4862" y="3843" o="0" r="vibeRacingBanner" c="free"/>
+ <o x="5428" y="2808" o="0" r="vibeRacingBanner" c="free"/>
+ <o x="4859" y="2549" o="0" r="vibeRacingBanner" c="free"/>
  <o x="766" y="1024" o="90" r="wall" c="free"/>
  <o x="794" y="1122" o="45" r="wall" c="free"/>
  <o x="792" y="925" o="-45" r="wall" c="free"/>
@@ -960,8 +960,8 @@
  <o x="2559" y="4465" o="180" r="grandstand" c="free"/>
  <o x="8631" y="3262" o="90" r="grandstand" c="free"/>
  <o x="8631" y="3645" o="90" r="grandstand" c="free"/>
- <o x="8485" y="3096" o="45" r="dustRacing2DBanner" c="free"/>
- <o x="8488" y="3811" o="135" r="dustRacing2DBanner" c="free"/>
+ <o x="8485" y="3096" o="45" r="vibeRacingBanner" c="free"/>
+ <o x="8488" y="3811" o="135" r="vibeRacingBanner" c="free"/>
  <o x="1042" y="1377" o="45" r="sandAreaBig" c="free"/>
  <o x="1022" y="3368" o="-90" r="sandAreaBig" c="free"/>
  <o x="4070" y="2818" o="180" r="sandAreaBig" c="free"/>

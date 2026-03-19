@@ -3,7 +3,7 @@
 ## **1. RENDERING PIPELINE & ARCHITECTURE**
 
 ### **1.1 Overview**
-DustRacing2D uses a multi-layered OpenGL rendering system with:
+VibeRacing uses a multi-layered OpenGL rendering system with:
 - **Engine**: Built on MCGLScene (custom engine framework)
 - **OpenGL Support**: Both Legacy (v1.20) and Modern (v1.30+) shader pipelines
 - **Platform Support**: Desktop OpenGL + OpenGL ES (GLES) with precision qualifiers
@@ -938,4 +938,4 @@ Renderer::renderNow()
 **Document Revision**: v1.0  
 **Last Updated**: Based on source code analysis  
 **Engine**: Qt/OpenGL with MCGL framework  
-**Game**: DustRacing2D by Jussi Lind
+**Game**: VibeRacing by Jussi Lind

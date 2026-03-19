@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 cmake_policy(VERSION 3.10)
 
-project(DustRacing2D)
+project(VibeRacing)
 
 # Use cmake --help-policy [POLICY] for more information about these:
 
@@ -39,7 +39,7 @@ set(CPACK_PACKAGE_VERSION_MAJOR ${VERSION_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${VERSION_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${VERSION_PATCH})
 
-set(CPACK_PACKAGE_NAME dustracing2d)
+set(CPACK_PACKAGE_NAME viberacing)
 set(CPACK_PACKAGE_VENDOR Juzzlin)
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "")
 set(CPACK_PACKAGE_ICON ${CMAKE_SOURCE_DIR}/data/images/about.png)
@@ -141,8 +141,8 @@ elseif(MSVC)
     add_definitions(-DNOMINMAX)
 endif()
 
-set(GAME_BINARY_NAME "dustrac-game")
-set(EDITOR_BINARY_NAME "dustrac-editor")
+set(GAME_BINARY_NAME "viberacing-game")
+set(EDITOR_BINARY_NAME "viberacing-editor")
 
 add_definitions(-DVERSION="${VERSION}")
 
@@ -164,9 +164,9 @@ message(STATUS "Qt version found  : ${QT_VERSION_MAJOR}.${QT_VERSION_MINOR}.${QT
 # Find OpenGL
 find_package(OpenGL REQUIRED)
 if(${CMAKE_VERSION} VERSION_LESS "3.11.0")
-    set(DUSTRAC_OPENGL_LIBS ${OPENGL_gl_LIBRARY})
+    set(VIBERACING_OPENGL_LIBS ${OPENGL_gl_LIBRARY})
 else()
-    set(DUSTRAC_OPENGL_LIBS OpenGL::GL)
+    set(VIBERACING_OPENGL_LIBS OpenGL::GL)
 endif()
 
 # OpenAL for sounds. OpenAL directory can be given by -DOPENALDIR=...

@@ -465,7 +465,7 @@
  <o o="0" r="tire" c="free" x="2510" y="2503"/>
  <o o="0" r="tire" c="free" x="2545" y="2385"/>
  <o o="0" r="tire" c="free" x="2514" y="2559"/>
- <o o="90" r="dustRacing2DBanner" c="free" x="793" y="2816"/>
+ <o o="90" r="vibeRacingBanner" c="free" x="793" y="2816"/>
  <o o="45" r="grandstand" c="free" x="913" y="2966"/>
  <o o="135" r="grandstand" c="free" x="919" y="2662"/>
  <o o="180" r="pit" c="free" x="1159" y="3128"/>
@@ -489,8 +489,8 @@
  <o o="90" r="grandstand" c="free" x="3135" y="1219"/>
  <o o="180" r="grandstand" c="free" x="2866" y="2626"/>
  <o o="180" r="grandstand" c="free" x="2995" y="2626"/>
- <o o="-90" r="dustRacing2DBanner" c="free" x="2421" y="2635"/>
- <o o="-45" r="dustRacing2DBanner" c="free" x="2325" y="2866"/>
+ <o o="-90" r="vibeRacingBanner" c="free" x="2421" y="2635"/>
+ <o o="-45" r="vibeRacingBanner" c="free" x="2325" y="2866"/>
  <o o="-45" r="wallLong" c="free" x="2201" y="2143"/>
  <o o="-45" r="wallLong" c="free" x="2381" y="1962"/>
  <o o="-45" r="wallLong" c="free" x="2742" y="1602"/>
@@ -507,9 +507,9 @@
  <o o="0" r="tree" c="free" x="3092" y="884"/>
  <o o="90" r="wallLong" c="free" x="2664" y="741"/>
  <o o="90" r="wallLong" c="free" x="2663" y="487"/>
- <o o="-135" r="dustRacing2DBanner" c="free" x="649" y="3279"/>
- <o o="-90" r="dustRacing2DBanner" c="free" x="465" y="2811"/>
- <o o="-110" r="dustRacing2DBanner" c="free" x="510" y="3063"/>
+ <o o="-135" r="vibeRacingBanner" c="free" x="649" y="3279"/>
+ <o o="-90" r="vibeRacingBanner" c="free" x="465" y="2811"/>
+ <o o="-110" r="vibeRacingBanner" c="free" x="510" y="3063"/>
  <o o="0" r="wallLong" c="free" x="2464" y="1303"/>
  <o o="45" r="wallLong" c="free" x="2252" y="1214"/>
  <o o="45" r="wallLong" c="free" x="4851" y="607"/>

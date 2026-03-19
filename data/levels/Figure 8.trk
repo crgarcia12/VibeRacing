@@ -265,8 +265,8 @@
  <o o="0" r="bushArea" c="free" x="3014" y="396"/>
  <o o="0" r="right" c="free" x="2111" y="962"/>
  <o o="0" r="right" c="free" x="1711" y="962"/>
- <o o="0" r="dustRacing2DBanner" c="free" x="896" y="3062"/>
- <o o="0" r="dustRacing2DBanner" c="free" x="1661" y="3059"/>
+ <o o="0" r="vibeRacingBanner" c="free" x="896" y="3062"/>
+ <o o="0" r="vibeRacingBanner" c="free" x="1661" y="3059"/>
  <o o="0" r="grandstand" c="free" x="1114" y="3016"/>
  <o o="0" r="grandstand" c="free" x="1285" y="3018"/>
  <o o="0" r="grandstand" c="free" x="1440" y="3018"/>
@@ -327,8 +327,8 @@
  <o o="0" r="grandstand" c="free" x="2119" y="309"/>
  <o o="0" r="grandstand" c="free" x="2289" y="312"/>
  <o o="0" r="grandstand" c="free" x="1910" y="308"/>
- <o o="0" r="dustRacing2DBanner" c="free" x="2004" y="457"/>
- <o o="0" r="dustRacing2DBanner" c="free" x="2326" y="454"/>
+ <o o="0" r="vibeRacingBanner" c="free" x="2004" y="457"/>
+ <o o="0" r="vibeRacingBanner" c="free" x="2326" y="454"/>
  <o o="0" r="sandAreaCurve" c="free" x="2076" y="793"/>
  <o o="90" r="sandAreaCurve" c="free" x="3047" y="794"/>
  <o o="180" r="sandAreaCurve" c="free" x="3045" y="1764"/>

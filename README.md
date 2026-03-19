@@ -1,22 +1,22 @@
-## Dust Racing 2D
+## VibeRacing
 
 <table>
   <tr>
     <td>
-      <img src="https://github.com/juzzlin/DustRacing2D/blob/gh-pages/screenshots/1.13.0/1.jpg" width="100%"></img>
+      <img src="data/images/intro.png" width="100%"></img>
     </td>
     <td>
-      <img src="https://github.com/juzzlin/DustRacing2D/blob/gh-pages/screenshots/1.13.0/3.jpg" width="100%"></img>
+      <img src="data/images/mainMenuBack.png" width="100%"></img>
     </td>
   </tr>
 </table>
 
 <a href="https://www.youtube.com/watch?feature=player_embedded&v=3hrIzzItggQ">Video of the game</a>
 
-Dust Racing 2D (Dustrac) is a tile-based, cross-platform 2D racing game written
+VibeRacing is a tile-based, cross-platform 2D racing game written
 in Qt (C++) and OpenGL.
 
-Dust Racing 2D comes with a Qt-based level editor for easy level creation.
+VibeRacing comes with a Qt-based level editor for easy level creation.
 A separate engine, MiniCore, is used for physics modeling.
 
 ## Features
@@ -39,13 +39,13 @@ A separate engine, MiniCore, is used for physics modeling.
 
 ## License
 
-Dust Racing 2D source code is licensed under GNU GPLv3.
+VibeRacing source code is licensed under GNU GPLv3.
 See COPYING for the complete license text.
 
-Dust Racing 2D includes the source code for the GLEW library.
+VibeRacing includes the source code for the GLEW library.
 See src/game/MiniCore/Graphics/glew/glew.h for the license text.
 
-Dust Racing 2D includes the source code for the GLM library.
+VibeRacing includes the source code for the GLM library.
 See src/game/MiniCore/Graphics/glm/ogl-math/glm/glm.hpp for the license text.
 
 All image files, except where otherwise noted, are licensed under
@@ -89,24 +89,24 @@ By stopping on the pit your tires will be repaired.
 
 ### Custom track files
 
-Dust Racing 2D searches for race tracks in `~/DustRacingTracks/` where you can place your own race tracks.
+VibeRacing searches for race tracks in `~/VibeRacingTracks/` where you can place your own race tracks.
 
-On Linux/Unix also `$XDG_DATA_HOME/DustRacing2D/tracks` is added to search paths, or `$HOME/.local/share/DustRacing2D/tracks` if `$XDG_DATA_HOME` is not defined.
+On Linux/Unix also `$XDG_DATA_HOME/VibeRacing/tracks` is added to search paths, or `$HOME/.local/share/VibeRacing/tracks` if `$XDG_DATA_HOME` is not defined.
 
 ## Command line options
 
 `--lang [lang]` forces the language. Currently available: `fi`, `cs`, `de`, `it`, `fr`, `nl`, `tr`.
 
-E.g. `dustrac-game --lang it`
+E.g. `viberacing-game --lang it`
 
 `--screen [index]` forces the screen on multi-display setups when in fullscreen mode.
 
-E.g. `dustrac-game --screen 1` would start the game on the second display.
+E.g. `viberacing-game --screen 1` would start the game on the second display.
 
 ## Building the project
 
 Please refer to the `INSTALL` document for build/install instructions if you're
-going to build **Dust Racing 2D** from sources.
+going to build **VibeRacing** from sources.
 
 In a nutshell, on Linux after installing `Qt6`, `OpenAL` and `Vorbis` dev libs you just:
 

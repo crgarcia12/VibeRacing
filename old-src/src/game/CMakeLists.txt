@@ -24,7 +24,7 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/STFH")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/audio")
 
 # Translation files in src/game/translations (without .ts)
-set(TS dustrac-game_fi dustrac-game_it dustrac-game_cs dustrac-game_fr dustrac-game_de dustrac-game_nl dustrac-game_tr)
+set(TS viberacing-game_fi viberacing-game_it viberacing-game_cs viberacing-game_fr viberacing-game_de viberacing-game_nl viberacing-game_tr)
 set(TS_FILES)
 set(QM_FILES)
 foreach(TS_FILE ${TS})
@@ -131,13 +131,13 @@ qt_add_translation(QM ${TS_FILES})
 if(ReleaseBuild AND UNIX)
     set(DesktopFileSourcePath)
     if(USC)
-        set(DesktopFileSourcePath ${CMAKE_SOURCE_DIR}/src/dustrac-game.desktop.opt.in)
+        set(DesktopFileSourcePath ${CMAKE_SOURCE_DIR}/src/viberacing-game.desktop.opt.in)
     else()
-        set(DesktopFileSourcePath ${CMAKE_SOURCE_DIR}/src/dustrac-game.desktop.in)
+        set(DesktopFileSourcePath ${CMAKE_SOURCE_DIR}/src/viberacing-game.desktop.in)
     endif()
     add_custom_target(desktop-file-game ALL
         COMMAND cmake -E copy ${DesktopFileSourcePath}
-            ${CMAKE_BINARY_DIR}/dustrac-game.desktop
+            ${CMAKE_BINARY_DIR}/viberacing-game.desktop
     DEPENDS ${GAME_BINARY_NAME})
 endif()
 
@@ -166,7 +166,7 @@ set(COMMON_LIBS
     ${VORBIS_LIB}     # Valid only with MSVC
     ${OGG_LIB})       # Valid only with MSVC
 
-target_link_libraries(${GAME_BINARY_NAME} ${COMMON_LIBS} Qt6::OpenGL Qt6::Sql Qt6::Xml ${DUSTRAC_OPENGL_LIBS} SimpleLogger_static Argengine_static)
+target_link_libraries(${GAME_BINARY_NAME} ${COMMON_LIBS} Qt6::OpenGL Qt6::Sql Qt6::Xml ${VIBERACING_OPENGL_LIBS} SimpleLogger_static Argengine_static)
 set_property(TARGET ${GAME_BINARY_NAME} PROPERTY CXX_STANDARD 17)
 
 if(BUILD_TESTING)
