@@ -164,13 +164,5 @@ function getDefaultHubUrl() {
     return 'http://localhost:5000/racehub';
   }
 
-  const { hostname, port, origin } = window.location;
-  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-  const isFrontendDevPort = port === '3000' || port === '4173' || port === '5173' || port === '5174';
-
-  if (isLocalhost && isFrontendDevPort) {
-    return 'http://localhost:5000/racehub';
-  }
-
-  return `${origin}/racehub`;
+  return `${window.location.origin}/racehub`;
 }
