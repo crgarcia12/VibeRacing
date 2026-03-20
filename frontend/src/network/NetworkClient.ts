@@ -90,13 +90,17 @@ export class NetworkClient {
         this.state.interpolatedPlayers.set(p.playerId, p);
       });
       this.setScoreboard(this.buildScoreboardFromPlayers(snapshot.players));
-      this.onStateChange();
+      if (this.state.screen !== 'race') {
+        this.onStateChange();
+      }
     });
 
     this.connection.on('ScoreboardUpdate', (data: ScoreboardUpdate) => {
       if (!this.state.latestSnapshot) {
         this.setScoreboard(data.rankings);
-        this.onStateChange();
+        if (this.state.screen !== 'race') {
+          this.onStateChange();
+        }
       }
     });
 

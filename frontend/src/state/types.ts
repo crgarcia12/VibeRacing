@@ -53,6 +53,7 @@ export interface RaceResult {
 export interface RaceFinished {
   trackName: string;
   totalLaps: number;
+  message?: string;
   results: RaceResult[];
 }
 

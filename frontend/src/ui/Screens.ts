@@ -71,6 +71,7 @@ export function renderResults(state: AppState, onPlayAgain: () => void): HTMLEle
   el.innerHTML = `
     <div class="card wide">
       <h2>Race Results - ${results.trackName}</h2>
+      <p class="subtitle">${results.message ?? 'We are done!'}</p>
       <table class="results-table">
         <thead><tr><th>#</th><th>Player</th><th>Total Time</th><th>Best Lap</th></tr></thead>
         <tbody>

@@ -51,9 +51,9 @@ public class RaceSession : IAsyncDisposable
             if (_tick % ScoreboardEveryTicks == 0)
                 await BroadcastScoreboard();
 
-            // Check race end
+            // End the race for everyone as soon as the first player completes all laps.
             var players = _room.Players.Values.ToList();
-            if (players.Count > 0 && players.All(p => p.Finished))
+            if (players.Any(p => p.Finished))
             {
                 _room.State = RoomState.Finished;
                 await BroadcastRaceFinished();
@@ -150,10 +150,12 @@ public class RaceSession : IAsyncDisposable
 
     private async Task BroadcastRaceFinished()
     {
+        IReadOnlyList<PlayerState> rankedPlayers;
         List<object> results;
         lock (_room.Players)
         {
-            results = RankingSystem.RankPlayers(_room.Players.Values, _track.Checkpoints.Count)
+            rankedPlayers = RankingSystem.RankPlayers(_room.Players.Values, _track.Checkpoints.Count);
+            results = rankedPlayers
                 .Select(p => (object)new
                 {
                     p.Rank, p.PlayerId, p.DisplayName,
@@ -162,10 +164,16 @@ public class RaceSession : IAsyncDisposable
                 }).ToList();
         }
 
+        var winner = rankedPlayers.FirstOrDefault(player => player.Finished);
+        var message = winner == null
+            ? "We are done!"
+            : $"We are done! {winner.DisplayName} finished lap {_room.TotalLaps} first.";
+
         await _broadcast(_room.Code, "RaceFinished", new
         {
             TrackName = _track.Name,
             TotalLaps = _room.TotalLaps,
+            Message = message,
             Results = results
         });
     }

@@ -40,32 +40,38 @@ function stopRenderLoop() {
   if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
 }
 
+function mountScreen(node: Node) {
+  if (appDiv.childNodes.length === 1 && appDiv.firstChild === node) {
+    return;
+  }
+
+  appDiv.replaceChildren(node);
+}
+
 function update() {
   if (state.track) {
     applyTrack(state.track);
   }
 
-  appDiv.innerHTML = '';
-
   switch (state.screen) {
     case 'landing':
       stopRenderLoop();
       inputHandler?.destroy(); inputHandler = null;
-      appDiv.appendChild(renderLanding(state, net));
+      mountScreen(renderLanding(state, net));
       break;
 
     case 'lobby':
       stopRenderLoop();
-      appDiv.appendChild(renderLobby(state, net));
+      mountScreen(renderLobby(state, net));
       break;
 
     case 'countdown':
       stopRenderLoop();
-      appDiv.appendChild(renderCountdown(state));
+      mountScreen(renderCountdown(state));
       break;
 
     case 'race':
-      appDiv.appendChild(canvas);
+      mountScreen(canvas);
       if (!inputHandler) {
         inputHandler = new InputHandler((a, b, l, r) => net.sendInput(a, b, l, r));
         inputHandler.startSending();
@@ -76,7 +82,7 @@ function update() {
     case 'results':
       stopRenderLoop();
       inputHandler?.stopSending();
-      appDiv.appendChild(renderResults(state, () => {
+      mountScreen(renderResults(state, () => {
         state.screen = 'lobby';
         state.raceResults = null;
         state.scoreboard = [];

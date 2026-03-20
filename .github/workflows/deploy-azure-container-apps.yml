@@ -31,6 +31,7 @@ jobs:
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
       AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
       AZURE_CONTAINERAPPS_ENVIRONMENT: ${{ vars.AZURE_CONTAINERAPPS_ENVIRONMENT }}
+      AZURE_CONTAINERAPPS_WORKLOAD_PROFILE: profi-16-64
       AZURE_CONTAINER_REGISTRY: ${{ vars.AZURE_CONTAINER_REGISTRY }}
       AZURE_BACKEND_APP_NAME: ${{ vars.AZURE_BACKEND_APP_NAME }}
       AZURE_FRONTEND_APP_NAME: ${{ vars.AZURE_FRONTEND_APP_NAME }}
@@ -115,7 +116,23 @@ jobs:
               --name "$AZURE_CONTAINERAPPS_ENVIRONMENT" \
               --resource-group "$AZURE_RESOURCE_GROUP" \
               --location "$AZURE_LOCATION" \
+              --enable-workload-profiles \
               >/dev/null
+          fi
+
+          workload_profile_exists="$(az containerapp env workload-profile list \
+            --name "$AZURE_CONTAINERAPPS_ENVIRONMENT" \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --query "[?name=='$AZURE_CONTAINERAPPS_WORKLOAD_PROFILE'] | [0].name" \
+            -o tsv)"
+
+          if [ -z "$workload_profile_exists" ]; then
+            echo "::error::Workload profile '$AZURE_CONTAINERAPPS_WORKLOAD_PROFILE' was not found in Container Apps environment '$AZURE_CONTAINERAPPS_ENVIRONMENT'."
+            az containerapp env workload-profile list \
+              --name "$AZURE_CONTAINERAPPS_ENVIRONMENT" \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              -o table
+            exit 1
           fi
 
           acr_login_server="$(az acr show --name "$AZURE_CONTAINER_REGISTRY" --resource-group "$AZURE_RESOURCE_GROUP" --query loginServer -o tsv)"
@@ -157,6 +174,7 @@ jobs:
               --name "$AZURE_BACKEND_APP_NAME" \
               --resource-group "$AZURE_RESOURCE_GROUP" \
               --image "$backend_image" \
+              --workload-profile-name "$AZURE_CONTAINERAPPS_WORKLOAD_PROFILE" \
               --cpu "$BACKEND_CPU" \
               --memory "$BACKEND_MEMORY" \
               --min-replicas 1 \
@@ -169,6 +187,7 @@ jobs:
               --resource-group "$AZURE_RESOURCE_GROUP" \
               --environment "$AZURE_CONTAINERAPPS_ENVIRONMENT" \
               --image "$backend_image" \
+              --workload-profile-name "$AZURE_CONTAINERAPPS_WORKLOAD_PROFILE" \
               --ingress external \
               --target-port "$BACKEND_CONTAINER_PORT" \
               --transport auto \
@@ -218,6 +237,7 @@ jobs:
               --name "$AZURE_FRONTEND_APP_NAME" \
               --resource-group "$AZURE_RESOURCE_GROUP" \
               --image "$frontend_image" \
+              --workload-profile-name "$AZURE_CONTAINERAPPS_WORKLOAD_PROFILE" \
               --cpu "$FRONTEND_CPU" \
               --memory "$FRONTEND_MEMORY" \
               --min-replicas 1 \
@@ -229,6 +249,7 @@ jobs:
               --resource-group "$AZURE_RESOURCE_GROUP" \
               --environment "$AZURE_CONTAINERAPPS_ENVIRONMENT" \
               --image "$frontend_image" \
+              --workload-profile-name "$AZURE_CONTAINERAPPS_WORKLOAD_PROFILE" \
               --ingress external \
               --target-port "$FRONTEND_CONTAINER_PORT" \
               --transport auto \
@@ -255,6 +276,7 @@ jobs:
             echo "- Frontend: ${{ steps.deploy-frontend.outputs.frontend_url }}"
             echo "- Resource group: ${AZURE_RESOURCE_GROUP}"
             echo "- Environment: ${AZURE_CONTAINERAPPS_ENVIRONMENT}"
+            echo "- Workload profile: ${AZURE_CONTAINERAPPS_WORKLOAD_PROFILE}"
             echo
             echo "> Frontend proxies /racehub to the backend so the browser uses a same-origin connection and no backend CORS policy is required."
             echo "> Backend scaling is pinned to one replica because the game server keeps room state in memory."
